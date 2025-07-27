@@ -1,7 +1,7 @@
 {
-	"name": "obsidian-sample-plugin",
+	"name": "reboarder",
 	"version": "1.0.0",
-	"description": "This is a sample plugin for Obsidian (https://obsidian.md)",
+	"description": "A kanban-style board view for organizing notes by folder with snooze and unpin functionality.",
 	"main": "main.js",
 	"scripts": {
 		"dev": "node esbuild.config.mjs",
