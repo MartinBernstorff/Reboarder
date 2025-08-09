@@ -28,6 +28,8 @@
     min-height: 120px;
     display: flex;
     flex-direction: column;
+	max-width: 100%;
+	box-sizing: border-box;
 }
 
 .reboarder-card:hover {
