@@ -20,13 +20,11 @@ interface ReboarderSettings {
 }
 
 interface SnoozeData {
-	[filePath: string]: number; // timestamp when snooze expires
+	[filePath: string]: { interval: number; expire: number }; // interval in hours, expiration timestamp
 }
 
 const DEFAULT_SETTINGS: ReboarderSettings = {
 	snoozeDurations: {
-		'1 hour': 1,
-		'4 hours': 4,
 		'1 day': 24,
 		'3 days': 72,
 		'1 weeks': 168
@@ -69,11 +67,6 @@ export default class ReboarderPlugin extends Plugin {
 
 		// Add settings tab
 		this.addSettingTab(new ReboarderSettingTab(this.app, this));
-
-		// Clean up expired snoozes periodically
-		this.registerInterval(
-			window.setInterval(() => this.cleanupExpiredSnoozes(), 60000) // Check every minute
-		);
 	}
 
 	async activateView(selectedBoardPath?: string) {
@@ -83,7 +76,7 @@ export default class ReboarderPlugin extends Plugin {
 		if (leaves.length > 0) {
 			leaf = leaves[0];
 		} else {
-			leaf = workspace.getRightLeaf(false);
+			leaf = workspace.getLeaf('tab');
 			await leaf?.setViewState({ type: REBOARDER_VIEW_TYPE, active: true });
 		}
 		if (leaf) {
@@ -117,10 +110,21 @@ export default class ReboarderPlugin extends Plugin {
 	}
 
 	async snoozeNote(file: TFile, hours: number) {
-		const expireTime = Date.now() + (hours * 60 * 60 * 1000);
-		this.snoozeData[file.path] = expireTime;
+		// Get all snooze durations sorted by value
+		const durations = Object.values(this.settings.snoozeDurations).sort((a, b) => a - b);
+		let nextIdx = 0;
+		const now = Date.now();
+		const entry = this.snoozeData[file.path];
+		if (entry && entry.expire > now) {
+			// Find current interval index
+			const currentIdx = durations.findIndex(d => d === entry.interval);
+			nextIdx = currentIdx !== -1 && currentIdx < durations.length - 1 ? currentIdx + 1 : durations.length - 1;
+		}
+		const nextInterval = durations[nextIdx];
+		const expireTime = now + (nextInterval * 60 * 60 * 1000);
+		this.snoozeData[file.path] = { interval: nextInterval, expire: expireTime };
 		await this.saveSnoozeData();
-		new Notice(`Note snoozed for ${hours} hour(s)`);
+		new Notice(`Note snoozed for ${nextInterval} hour(s)`);
 	}
 
 	async unpinNote(file: TFile) {
@@ -134,25 +138,9 @@ export default class ReboarderPlugin extends Plugin {
 	}
 
 	isNoteSnoozed(file: TFile): boolean {
-		const snoozeTime = this.snoozeData[file.path];
-		if (!snoozeTime) return false;
-		return Date.now() < snoozeTime;
-	}
-
-	cleanupExpiredSnoozes() {
-		const now = Date.now();
-		let hasChanges = false;
-		
-		for (const [path, expireTime] of Object.entries(this.snoozeData)) {
-			if (now >= expireTime) {
-				delete this.snoozeData[path];
-				hasChanges = true;
-			}
-		}
-		
-		if (hasChanges) {
-			this.saveSnoozeData();
-		}
+	const entry = this.snoozeData[file.path];
+	if (!entry) return false;
+	return Date.now() < entry.expire;
 	}
 
 	onunload() {
@@ -176,6 +164,10 @@ class ReboarderView extends ItemView {
 	}
 
 	getDisplayText() {
+		// If a board is selected, use its folder name
+		if (this.selectedBoardPath) {
+			return this.selectedBoardPath
+		}
 		return 'Reboarder';
 	}
 
@@ -201,8 +193,10 @@ class ReboarderView extends ItemView {
 	}
 
 	async showBoard(boardPath: string) {
-		this.selectedBoardPath = boardPath;
-		await this.onOpen();
+	this.selectedBoardPath = boardPath;
+	// Force tab title update by resetting view state
+	this.leaf.setViewState({ type: REBOARDER_VIEW_TYPE, active: true, state: { selectedBoardPath: boardPath } }, { focus: true });
+	await this.onOpen();
 	}
 
 	async renderBoardOnly(boardPath: string) {
@@ -210,9 +204,11 @@ class ReboarderView extends ItemView {
 		container.empty();
 		const folder = this.plugin.app.vault.getAbstractFileByPath(boardPath);
 		if (folder instanceof TFolder) {
+			this.leaf.setViewState({ type: REBOARDER_VIEW_TYPE, active: true, state: { selectedBoardPath: boardPath } }, { focus: true });
 			const boardsContainer = container.createDiv('reboarder-boards');
 			await this.renderBoard(boardsContainer, folder);
 		} else {
+			this.leaf.setViewState({ type: REBOARDER_VIEW_TYPE, active: true, state: { selectedBoardPath: undefined } }, { focus: true });
 			container.createDiv('reboarder-empty').setText('Board not found.');
 		}
 	}
@@ -270,9 +266,6 @@ class ReboarderView extends ItemView {
 	async renderBoard(container: HTMLElement, folder: TFolder) {
 		const boardEl = container.createDiv('reboarder-board');
 		
-		const headerEl = boardEl.createDiv('reboarder-board-header');
-		headerEl.createEl('h3', { text: folder.name });
-		
 		const cardsContainer = boardEl.createDiv('reboarder-cards-container');
 		
 		// Get notes in folder
@@ -281,6 +274,9 @@ class ReboarderView extends ItemView {
 			child.extension === 'md' &&
 			!this.plugin.isNoteSnoozed(child as TFile)
 		) as TFile[];
+
+		// Sort notes by last modified time (descending)
+		notes.sort((a, b) => a.stat.mtime - b.stat.mtime);
 
 		for (const note of notes) {
 			await this.renderCard(cardsContainer, note);
@@ -301,7 +297,15 @@ class ReboarderView extends ItemView {
 		// Card content preview
 		const contentEl = cardEl.createDiv('reboarder-card-content');
 		const preview = await this.getFilePreview(file);
-		contentEl.setText(preview);
+		// Use Obsidian's MarkdownRenderer to render markdown preview
+		// @ts-ignore
+		const { MarkdownRenderer } = require('obsidian');
+		MarkdownRenderer.renderMarkdown(
+			preview,
+			contentEl,
+			file.path,
+			this.plugin
+		);
 		
 		// Card actions
 		const actionsEl = cardEl.createDiv('reboarder-card-actions');
@@ -311,15 +315,17 @@ class ReboarderView extends ItemView {
 		
 		// Event listeners
 		cardEl.addEventListener('click', (e) => {
-			// Only open if clicking on the card itself, not buttons
-			if (e.target === cardEl || e.target === titleEl || e.target === contentEl) {
+			// Only open if NOT clicking a button inside the card
+			const target = e.target as HTMLElement;
+			if (!target.closest('.reboarder-btn')) {
 				this.app.workspace.openLinkText(file.path, '');
 			}
 		});
 
-		snoozeBtn.addEventListener('click', (e) => {
+		snoozeBtn.addEventListener('click', async (e) => {
 			e.stopPropagation();
-			this.showSnoozeMenu(snoozeBtn, file);
+			await this.plugin.snoozeNote(file, 0); // 0 triggers incremental logic
+			this.renderBoards(); // Refresh the view
 		});
 
 		unpinBtn.addEventListener('click', async (e) => {
@@ -353,14 +359,12 @@ class ReboarderView extends ItemView {
 	showSnoozeMenu(buttonEl: HTMLElement, file: TFile) {
 		const menu = new Menu();
 		
-		Object.entries(this.plugin.settings.snoozeDurations).forEach(([label, hours]) => {
-			menu.addItem((item) => {
-				item.setTitle(label)
-					.onClick(async () => {
-						await this.plugin.snoozeNote(file, hours);
-						this.renderBoards(); // Refresh the view
-					});
-			});
+		menu.addItem((item) => {
+			item.setTitle('Incremental Snooze')
+				.onClick(async () => {
+					await this.plugin.snoozeNote(file, 0); // 0 triggers incremental logic
+					this.renderBoards();
+				});
 		});
 
 		menu.addSeparator();

@@ -12,25 +12,6 @@
     gap: 30px;
 }
 
-.reboarder-board {
-    border: 1px solid var(--background-modifier-border);
-    border-radius: 8px;
-    background: var(--background-primary);
-    padding: 16px;
-}
-
-.reboarder-board-header {
-    margin-bottom: 16px;
-    border-bottom: 1px solid var(--background-modifier-border);
-    padding-bottom: 8px;
-}
-
-.reboarder-board-header h3 {
-    margin: 0;
-    color: var(--text-accent);
-    font-size: 1.2em;
-}
-
 .reboarder-cards-container {
     display: grid;
     grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
@@ -50,9 +31,7 @@
 }
 
 .reboarder-card:hover {
-    border-color: var(--text-accent);
-    transform: translateY(-2px);
-    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+    border-color: var(--background-modifier-hover);
 }
 
 .reboarder-card-header {
@@ -98,7 +77,7 @@
 }
 
 .reboarder-btn-snooze:hover {
-    background: var(--interactive-accent-hover);
+    background: var(--background-modifier-hover);
 }
 
 .reboarder-btn-unpin {
@@ -157,14 +136,6 @@
 @media (max-width: 768px) {
     .reboarder-cards-container {
         grid-template-columns: 1fr;
-    }
-    
-    .reboarder-container {
-        padding: 10px;
-    }
-    
-    .reboarder-boards {
-        gap: 20px;
     }
 }
 
