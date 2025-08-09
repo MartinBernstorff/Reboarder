@@ -29,7 +29,7 @@ const DEFAULT_SETTINGS: ReboarderSettings = {
 		'4 hours': 4,
 		'1 day': 24,
 		'3 days': 72,
-		'1 week': 168
+		'1 weeks': 168
 	},
 	defaultSnoozeHours: 24,
 	cardPreviewLength: 200,
@@ -55,13 +55,16 @@ export default class ReboarderPlugin extends Plugin {
 			this.activateView();
 		});
 
-		// Add command to open reboarder
-		this.addCommand({
-			id: 'open-reboarder',
-			name: 'Open Reboarder boards',
-			callback: () => {
-				this.activateView();
-			}
+		// Add one command per board
+		const folders = ReboarderView.prototype.getFolders.call({plugin: this, app: this.app});
+		folders.forEach((folder: TFolder) => {
+			this.addCommand({
+				id: `open-reboarder-${folder.name.replace(/\s+/g, '-').toLowerCase()}`,
+				name: `Open board: ${folder.name}`,
+				callback: () => {
+					this.activateView(folder.path);
+				}
+			});
 		});
 
 		// Add settings tab
@@ -73,21 +76,25 @@ export default class ReboarderPlugin extends Plugin {
 		);
 	}
 
-	async activateView() {
+	async activateView(selectedBoardPath?: string) {
 		const { workspace } = this.app;
-		
 		let leaf: WorkspaceLeaf | null = null;
 		const leaves = workspace.getLeavesOfType(REBOARDER_VIEW_TYPE);
-
 		if (leaves.length > 0) {
 			leaf = leaves[0];
 		} else {
 			leaf = workspace.getRightLeaf(false);
 			await leaf?.setViewState({ type: REBOARDER_VIEW_TYPE, active: true });
 		}
-
 		if (leaf) {
 			workspace.revealLeaf(leaf);
+			// Pass selected board path to the view
+			if (selectedBoardPath && leaf.view instanceof ReboarderView) {
+				leaf.view.showBoard(selectedBoardPath);
+			} else if (selectedBoardPath) {
+				// If view not ready, store for later
+				(leaf as any).reboarderSelectedBoardPath = selectedBoardPath;
+			}
 		}
 	}
 
@@ -156,6 +163,7 @@ export default class ReboarderPlugin extends Plugin {
 const REBOARDER_VIEW_TYPE = 'reboarder-view';
 
 class ReboarderView extends ItemView {
+	selectedBoardPath?: string;
 	plugin: ReboarderPlugin;
 
 	constructor(leaf: WorkspaceLeaf, plugin: ReboarderPlugin) {
@@ -179,8 +187,34 @@ class ReboarderView extends ItemView {
 		const container = this.containerEl.children[1];
 		container.empty();
 		container.addClass('reboarder-container');
+		// Check if a board path was passed
+		const leaf = this.leaf as WorkspaceLeaf & { reboarderSelectedBoardPath?: string };
+		if (leaf && leaf.reboarderSelectedBoardPath) {
+			this.selectedBoardPath = leaf.reboarderSelectedBoardPath;
+			delete leaf.reboarderSelectedBoardPath;
+		}
+		if (this.selectedBoardPath) {
+			await this.renderBoardOnly(this.selectedBoardPath);
+		} else {
+			await this.renderBoards();
+		}
+	}
 
-		await this.renderBoards();
+	async showBoard(boardPath: string) {
+		this.selectedBoardPath = boardPath;
+		await this.onOpen();
+	}
+
+	async renderBoardOnly(boardPath: string) {
+		const container = this.containerEl.children[1];
+		container.empty();
+		const folder = this.plugin.app.vault.getAbstractFileByPath(boardPath);
+		if (folder instanceof TFolder) {
+			const boardsContainer = container.createDiv('reboarder-boards');
+			await this.renderBoard(boardsContainer, folder);
+		} else {
+			container.createDiv('reboarder-empty').setText('Board not found.');
+		}
 	}
 
 	async renderBoards() {
