@@ -25,9 +25,7 @@ interface SnoozeData {
 
 const DEFAULT_SETTINGS: ReboarderSettings = {
 	snoozeDurations: {
-		'1 day': 24,
-		'3 days': 72,
-		'1 weeks': 168
+		'2 days': 48,
 	},
 	defaultSnoozeHours: 24,
 	cardPreviewLength: 200,
@@ -325,13 +323,21 @@ class ReboarderView extends ItemView {
 		snoozeBtn.addEventListener('click', async (e) => {
 			e.stopPropagation();
 			await this.plugin.snoozeNote(file, 0); // 0 triggers incremental logic
-			this.renderBoards(); // Refresh the view
+			if (this.selectedBoardPath) {
+				await this.renderBoardOnly(this.selectedBoardPath);
+			} else {
+				await this.renderBoardOnly("");
+			}
 		});
 
 		unpinBtn.addEventListener('click', async (e) => {
 			e.stopPropagation();
 			await this.plugin.unpinNote(file);
-			this.renderBoards(); // Refresh the view
+			if (this.selectedBoardPath) {
+				await this.renderBoardOnly(this.selectedBoardPath);
+			} else {
+				await this.renderBoardOnly("");
+			}
 		});
 	}
 
