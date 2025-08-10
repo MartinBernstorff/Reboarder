@@ -1,7 +1,6 @@
 /* Reboarder Plugin Styles */
 
 .reboarder-container {
-    padding: 20px;
     height: 100%;
     overflow-y: auto;
 }
@@ -83,7 +82,7 @@
     border: 1px solid var(--background-modifier-border);
     border-radius: 6px;
     background: var(--background-secondary);
-    padding: 12px;
+    padding: 0;
     cursor: pointer;
     transition: all 0.2s ease;
     min-height: 120px;
@@ -99,6 +98,7 @@
 
 .reboarder-card-header {
     margin-bottom: 8px;
+    padding: 12px 12px 0 12px;
 }
 
 .reboarder-card-header h4 {
@@ -113,25 +113,85 @@
     font-size: 0.9em;
     color: var(--text-muted);
     line-height: 1.4;
-    margin-bottom: 12px;
+    margin-bottom: 0;
     overflow: hidden;
     text-overflow: ellipsis;
+    padding: 0 12px 12px 12px;
+}
+
+.reboarder-card-content .markdown-preview-view {
+    font-size: inherit;
+    line-height: inherit;
+    color: inherit;
+    overflow: hidden;
+	padding: 0;
+}
+
+.reboarder-card-content .markdown-preview-view p {
+    margin: 0;
+    margin-bottom: 0.5em;
+}
+
+.reboarder-card-content .markdown-preview-view p:last-child {
+    margin-bottom: 0;
+}
+
+.reboarder-card-content .markdown-preview-view h1,
+.reboarder-card-content .markdown-preview-view h2,
+.reboarder-card-content .markdown-preview-view h3,
+.reboarder-card-content .markdown-preview-view h4,
+.reboarder-card-content .markdown-preview-view h5,
+.reboarder-card-content .markdown-preview-view h6 {
+    font-size: 1em;
+    margin: 0;
+    margin-bottom: 0.3em;
+    font-weight: 600;
+}
+
+.reboarder-card-content .markdown-preview-view ul,
+.reboarder-card-content .markdown-preview-view ol {
+    margin: 0;
+    margin-bottom: 0.5em;
+}
+
+.reboarder-card-content .markdown-preview-view blockquote {
+    margin: 0;
+    border-left: 2px solid var(--background-modifier-border);
+    margin-bottom: 0.5em;
+}
+
+.reboarder-card-content .markdown-preview-view code {
+    background: var(--background-secondary);
+    padding: 0.1em 0.3em;
+    border-radius: 3px;
+    font-size: 0.9em;
 }
 
 .reboarder-card-actions {
     display: flex;
-    gap: 8px;
+    gap: 0;
     margin-top: auto;
+    border-top: 1px solid var(--background-modifier-border);
 }
 
 .reboarder-btn {
-    padding: 4px 8px;
+    padding: 12px 16px;
     border: none;
-    border-radius: 4px;
+    border-radius: 0;
     font-size: 0.8em;
     cursor: pointer;
     transition: all 0.2s ease;
     flex: 1;
+    background: var(--background-primary);
+    color: var(--text-normal);
+}
+
+.reboarder-btn:first-child {
+    border-bottom-left-radius: 6px;
+}
+
+.reboarder-btn:last-child {
+    border-bottom-right-radius: 6px;
 }
 
 .reboarder-btn-snooze {
@@ -140,11 +200,11 @@
 }
 
 .reboarder-btn-snooze:hover {
-    background: var(--background-modifier-hover);
+    background: var(--interactive-accent-hover);
 }
 
 .reboarder-btn-unpin {
-    background: var(--background-modifier-border);
+    background: var(--background-primary);
     color: var(--text-normal);
 }
 

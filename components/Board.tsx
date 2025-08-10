@@ -19,8 +19,9 @@ export const Board: React.FC<BoardProps> = ({
   onOpenNote 
 }) => {
   const [notes, setNotes] = useState<TFile[]>([]);
+  const [refreshKey, setRefreshKey] = useState(0);
 
-  useEffect(() => {
+  const updateNotesList = () => {
     // Get notes in folder
     const folderNotes = folder.children.filter(child => 
       child instanceof TFile && 
@@ -28,10 +29,20 @@ export const Board: React.FC<BoardProps> = ({
       !plugin.isNoteSnoozed(child as TFile)
     ) as TFile[];
 
-    // Sort notes by last modified time (ascending - oldest first)
-    folderNotes.sort((a, b) => a.stat.mtime - b.stat.mtime);
+    // Sort notes by last modified time (newest first)
+    folderNotes.sort((a, b) => b.stat.mtime - a.stat.mtime);
     setNotes(folderNotes);
-  }, [folder, plugin]);
+  };
+
+  useEffect(() => {
+    updateNotesList();
+  }, [folder, plugin, refreshKey]);
+
+  const handleSnoozeNote = async (file: TFile) => {
+    await onSnoozeNote(file);
+    // Force a re-render by incrementing the refresh key
+    setRefreshKey(prev => prev + 1);
+  };
 
   return (
     <div className="reboarder-board">
@@ -45,7 +56,7 @@ export const Board: React.FC<BoardProps> = ({
               key={note.path}
               file={note}
               plugin={plugin}
-              onSnooze={() => onSnoozeNote(note)}
+              onSnooze={() => handleSnoozeNote(note)}
               onUnpin={() => onUnpinNote(note)}
               onOpen={() => onOpenNote(note)}
             />

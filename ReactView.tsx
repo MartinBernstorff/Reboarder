@@ -42,9 +42,6 @@ export const ReboarderView: React.FC<{
   if (folder instanceof TFolder) {
     return (
       <div className="reboarder-container">
-        <div className="reboarder-header">
-          <h2>{folder.name}</h2>
-        </div>
         <div className="reboarder-boards">
           <Board
             folder={folder}
