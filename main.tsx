@@ -4,9 +4,11 @@ import {
 	PluginSettingTab, 
 	Setting, 
 	TFile, 
+	TFolder,
 	WorkspaceLeaf,
 	ItemView,
-	Notice
+	Notice,
+	ViewStateResult
 } from 'obsidian';
 import { StrictMode } from 'react';
 import { Root, createRoot } from 'react-dom/client';
@@ -24,10 +26,6 @@ interface SnoozeData {
 	[filePath: string]: { interval: number; expire: number }; // interval in hours, expiration timestamp
 }
 
-interface ExtendedWorkspaceLeaf extends WorkspaceLeaf {
-	reboarderSelectedBoardPath?: string;
-}
-
 const DEFAULT_SETTINGS: ReboarderSettings = {
 	snoozeDurations: {
 		'2 days': 48,
@@ -41,6 +39,38 @@ export default class ReboarderPlugin extends Plugin {
 	settings: ReboarderSettings;
 	snoozeData: SnoozeData = {};
 
+	getFolders(): TFolder[] {
+		const folders: TFolder[] = [];
+		
+		const traverse = (folder: TFolder) => {
+			// Skip excluded folders
+			if (this.settings.excludedFolders.includes(folder.path)) {
+				return;
+			}
+			
+			// Add folder if it has notes
+			const notes = folder.children.filter(child => child instanceof TFile && child.extension === 'md');
+			if (notes.length > 0) {
+				folders.push(folder);
+			}
+			
+			// Recursively check subfolders
+			folder.children.forEach(child => {
+				if (child instanceof TFolder) {
+					traverse(child);
+				}
+			});
+		};
+
+		this.app.vault.getRoot().children.forEach(child => {
+			if (child instanceof TFolder) {
+				traverse(child);
+			}
+		});
+
+		return folders;
+	}
+
 	async onload() {
 		await this.loadSettings();
 		await this.loadSnoozeData();
@@ -51,47 +81,39 @@ export default class ReboarderPlugin extends Plugin {
 			(leaf) => new ReboarderView(leaf, this)
 		);
 
-		// Add ribbon icon
-		this.addRibbonIcon('kanban-square', 'Open Reboarder', () => {
-			this.activateView();
+		// Add one command per board
+		const folders = this.getFolders();
+		folders.forEach((folder: TFolder) => {
+			this.addCommand({
+				id: `open-reboarder-${folder.name.replace(/\s+/g, '-').toLowerCase()}`,
+				name: `Open board: ${folder.name}`,
+				callback: () => {
+					this.activateView(folder.path);
+				}
+			});
 		});
-
-		// Add one command per board - we'll do this dynamically for now
-		// const folders = this.getFolders();
-		// folders.forEach((folder: TFolder) => {
-		// 	this.addCommand({
-		// 		id: `open-reboarder-${folder.name.replace(/\s+/g, '-').toLowerCase()}`,
-		// 		name: `Open board: ${folder.name}`,
-		// 		callback: () => {
-		// 			this.activateView(folder.path);
-		// 		}
-		// 	});
-		// });
 
 		// Add settings tab
 		this.addSettingTab(new ReboarderSettingTab(this.app, this));
 	}
 
-	async activateView(selectedBoardPath?: string) {
+	async activateView(selectedBoardPath: string) {
 		const { workspace } = this.app;
-		let leaf: WorkspaceLeaf | null = null;
-		const leaves = workspace.getLeavesOfType(REBOARDER_VIEW_TYPE);
-		if (leaves.length > 0) {
-			leaf = leaves[0];
-		} else {
-			leaf = workspace.getLeaf('tab');
-			await leaf?.setViewState({ type: REBOARDER_VIEW_TYPE, active: true });
-		}
-		if (leaf) {
-			workspace.revealLeaf(leaf);
-			// Pass selected board path to the view
-			if (selectedBoardPath && leaf.view instanceof ReboarderView) {
-				leaf.view.showBoard(selectedBoardPath);
-			} else if (selectedBoardPath) {
-				// If view not ready, store for later
-				(leaf as ExtendedWorkspaceLeaf).reboarderSelectedBoardPath = selectedBoardPath;
-			}
-		}
+		
+		console.log('activateView called with selectedBoardPath:', selectedBoardPath);
+		
+		// Always create a new leaf for navigation between boards
+		// This ensures each board view has its own navigation history
+		const leaf = workspace.getLeaf('tab');
+		
+		// Set the view state with the selected board path
+		await leaf.setViewState({ 
+			type: REBOARDER_VIEW_TYPE, 
+			active: true,
+			state: { selectedBoardPath: selectedBoardPath }
+		});
+		
+		workspace.revealLeaf(leaf);
 	}
 
 	async loadSettings() {
@@ -127,7 +149,7 @@ export default class ReboarderPlugin extends Plugin {
 		const expireTime = now + (nextInterval * 60 * 60 * 1000);
 		this.snoozeData[file.path] = { interval: nextInterval, expire: expireTime };
 		await this.saveSnoozeData();
-		new Notice(`Note snoozed for ${nextInterval} hour(s)`);
+		new Notice(`${file.name} snoozed for ${nextInterval} hour(s)`);
 	}
 
 	async unpinNote(file: TFile) {
@@ -146,6 +168,10 @@ export default class ReboarderPlugin extends Plugin {
 	return Date.now() < entry.expire;
 	}
 
+	async openFileInLeaf(file: TFile, leaf: WorkspaceLeaf) {
+		await leaf.openFile(file);
+	}
+
 	onunload() {
 		// Cleanup
 	}
@@ -154,7 +180,7 @@ export default class ReboarderPlugin extends Plugin {
 const REBOARDER_VIEW_TYPE = 'reboarder-view';
 
 class ReboarderView extends ItemView {
-	selectedBoardPath?: string;
+	selectedBoardPath = ''; // Initialize with empty string
 	plugin: ReboarderPlugin;
 	root: Root | null = null;
 
@@ -168,9 +194,10 @@ class ReboarderView extends ItemView {
 	}
 
 	getDisplayText() {
-		// If a board is selected, use its folder name
-		if (this.selectedBoardPath) {
-			return this.selectedBoardPath
+		// Show the folder name
+		const folder = this.app.vault.getAbstractFileByPath(this.selectedBoardPath);
+		if (folder instanceof TFolder) {
+			return `Board: ${folder.name}`;
 		}
 		return 'Reboarder';
 	}
@@ -179,36 +206,62 @@ class ReboarderView extends ItemView {
 		return 'kanban-square';
 	}
 
-	async onOpen() {
-		const container = this.containerEl.children[1];
-		container.empty();
-		container.addClass('reboarder-container');
-		
-		// Check if a board path was passed
-		const leaf = this.leaf as ExtendedWorkspaceLeaf;
-		if (leaf && leaf.reboarderSelectedBoardPath) {
-			this.selectedBoardPath = leaf.reboarderSelectedBoardPath;
-			delete leaf.reboarderSelectedBoardPath;
-		}
+	getState() {
+		return {
+			selectedBoardPath: this.selectedBoardPath
+		};
+	}
 
-		// Create React root and render the component
-		this.root = createRoot(container);
+	async setState(state: unknown, result: ViewStateResult) {
+		const typedState = state as { selectedBoardPath?: string };
+		if (typedState && typedState.selectedBoardPath) {
+			this.selectedBoardPath = typedState.selectedBoardPath;
+			console.log('ReboarderView setState: selectedBoardPath set to', this.selectedBoardPath);
+			// Re-render the React component with the updated path
+			if (this.root) {
+				this.renderReactComponent();
+			}
+		} else {
+			console.log('ReboarderView setState: No selectedBoardPath in state', state);
+		}
+		return super.setState(state, result);
+	}
+
+	renderReactComponent() {
+		if (!this.root) return;
+		
+		// Create a callback to open files in this leaf
+		const openFileInCurrentLeaf = (file: TFile) => {
+			this.plugin.openFileInLeaf(file, this.leaf);
+		};
+
+		// Re-render the React component with the current selectedBoardPath
 		this.root.render(
 			<StrictMode>
 				<AppContext.Provider value={this.app}>
 					<PluginContext.Provider value={this.plugin}>
-						<ReactReboarderView selectedBoardPath={this.selectedBoardPath} />
+						<ReactReboarderView 
+							selectedBoardPath={this.selectedBoardPath}
+							onOpenFile={openFileInCurrentLeaf}
+						/>
 					</PluginContext.Provider>
 				</AppContext.Provider>
 			</StrictMode>
 		);
 	}
 
-	async showBoard(boardPath: string) {
-		this.selectedBoardPath = boardPath;
-		// Force tab title update by resetting view state
-		this.leaf.setViewState({ type: REBOARDER_VIEW_TYPE, active: true, state: { selectedBoardPath: boardPath } }, { focus: true });
-		await this.onOpen();
+	async onOpen() {
+		console.log('ReboarderView onOpen called, selectedBoardPath:', this.selectedBoardPath);
+		
+		const container = this.containerEl.children[1];
+		container.empty();
+		container.addClass('reboarder-container');
+
+		// Create React root
+		this.root = createRoot(container);
+		
+		// Render the component (might be with empty selectedBoardPath initially)
+		this.renderReactComponent();
 	}
 
 	async onClose() {
