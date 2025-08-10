@@ -133,19 +133,3 @@
     font-family: var(--font-monospace);
     resize: vertical;
 }
-
-/* Mobile responsiveness */
-@media (max-width: 768px) {
-    .reboarder-cards-container {
-        grid-template-columns: 1fr;
-    }
-}
-
-/* Dark mode adjustments */
-.theme-dark .reboarder-card {
-    background: var(--background-primary-alt);
-}
-
-.theme-dark .reboarder-card:hover {
-    box-shadow: 0 4px 8px rgba(255, 255, 255, 0.1);
-}
