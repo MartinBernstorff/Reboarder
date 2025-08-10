@@ -4,12 +4,9 @@ import {
 	PluginSettingTab, 
 	Setting, 
 	TFile, 
-	TFolder,
 	WorkspaceLeaf,
 	ItemView,
-	Menu,
-	Notice,
-	Modal
+	Notice
 } from 'obsidian';
 import { StrictMode } from 'react';
 import { Root, createRoot } from 'react-dom/client';
@@ -25,6 +22,10 @@ interface ReboarderSettings {
 
 interface SnoozeData {
 	[filePath: string]: { interval: number; expire: number }; // interval in hours, expiration timestamp
+}
+
+interface ExtendedWorkspaceLeaf extends WorkspaceLeaf {
+	reboarderSelectedBoardPath?: string;
 }
 
 const DEFAULT_SETTINGS: ReboarderSettings = {
@@ -55,17 +56,17 @@ export default class ReboarderPlugin extends Plugin {
 			this.activateView();
 		});
 
-		// Add one command per board
-		const folders = ReboarderView.prototype.getFolders.call({plugin: this, app: this.app});
-		folders.forEach((folder: TFolder) => {
-			this.addCommand({
-				id: `open-reboarder-${folder.name.replace(/\s+/g, '-').toLowerCase()}`,
-				name: `Open board: ${folder.name}`,
-				callback: () => {
-					this.activateView(folder.path);
-				}
-			});
-		});
+		// Add one command per board - we'll do this dynamically for now
+		// const folders = this.getFolders();
+		// folders.forEach((folder: TFolder) => {
+		// 	this.addCommand({
+		// 		id: `open-reboarder-${folder.name.replace(/\s+/g, '-').toLowerCase()}`,
+		// 		name: `Open board: ${folder.name}`,
+		// 		callback: () => {
+		// 			this.activateView(folder.path);
+		// 		}
+		// 	});
+		// });
 
 		// Add settings tab
 		this.addSettingTab(new ReboarderSettingTab(this.app, this));
@@ -88,7 +89,7 @@ export default class ReboarderPlugin extends Plugin {
 				leaf.view.showBoard(selectedBoardPath);
 			} else if (selectedBoardPath) {
 				// If view not ready, store for later
-				(leaf as any).reboarderSelectedBoardPath = selectedBoardPath;
+				(leaf as ExtendedWorkspaceLeaf).reboarderSelectedBoardPath = selectedBoardPath;
 			}
 		}
 	}
@@ -184,7 +185,7 @@ class ReboarderView extends ItemView {
 		container.addClass('reboarder-container');
 		
 		// Check if a board path was passed
-		const leaf = this.leaf as WorkspaceLeaf & { reboarderSelectedBoardPath?: string };
+		const leaf = this.leaf as ExtendedWorkspaceLeaf;
 		if (leaf && leaf.reboarderSelectedBoardPath) {
 			this.selectedBoardPath = leaf.reboarderSelectedBoardPath;
 			delete leaf.reboarderSelectedBoardPath;
@@ -212,63 +213,6 @@ class ReboarderView extends ItemView {
 
 	async onClose() {
 		this.root?.unmount();
-	}
-}
-
-class CustomSnoozeModal extends Modal {
-	plugin: ReboarderPlugin;
-	file: TFile;
-	onComplete: () => void;
-
-	constructor(app: App, plugin: ReboarderPlugin, file: TFile, onComplete: () => void) {
-		super(app);
-		this.plugin = plugin;
-		this.file = file;
-		this.onComplete = onComplete;
-	}
-
-	onOpen() {
-		const { contentEl } = this;
-		contentEl.empty();
-
-		contentEl.createEl('h2', { text: 'Custom Snooze Duration' });
-
-		const container = contentEl.createDiv();
-		
-		let hours = this.plugin.settings.defaultSnoozeHours;
-		
-		new Setting(container)
-			.setName('Hours')
-			.setDesc('Number of hours to snooze this note')
-			.addText(text => {
-				text.setValue(hours.toString())
-					.onChange((value) => {
-						const parsed = parseInt(value);
-						if (!isNaN(parsed) && parsed > 0) {
-							hours = parsed;
-						}
-					});
-			});
-
-		const buttonContainer = contentEl.createDiv('reboarder-modal-buttons');
-		
-		const cancelBtn = buttonContainer.createEl('button', { text: 'Cancel' });
-		const snoozeBtn = buttonContainer.createEl('button', { text: 'Snooze', cls: 'mod-cta' });
-		
-		cancelBtn.addEventListener('click', () => {
-			this.close();
-		});
-		
-		snoozeBtn.addEventListener('click', async () => {
-			await this.plugin.snoozeNote(this.file, hours);
-			this.onComplete();
-			this.close();
-		});
-	}
-
-	onClose() {
-		const { contentEl } = this;
-		contentEl.empty();
 	}
 }
 
