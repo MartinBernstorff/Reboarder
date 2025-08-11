@@ -38,6 +38,7 @@ const DEFAULT_SETTINGS: ReboarderSettings = {
 export default class ReboarderPlugin extends Plugin {
 	settings: ReboarderSettings;
 	snoozeData: SnoozeData = {};
+	private registeredFolderPaths: Set<string> = new Set();
 
 	getFolders(): TFolder[] {
 		const folders: TFolder[] = [];
@@ -81,20 +82,75 @@ export default class ReboarderPlugin extends Plugin {
 			(leaf) => new ReboarderView(leaf, this)
 		);
 
-		// Add one command per board
-		const folders = this.getFolders();
-		folders.forEach((folder: TFolder) => {
-			this.addCommand({
-				id: `open-reboarder-${folder.name.replace(/\s+/g, '-').toLowerCase()}`,
-				name: `Open board: ${folder.name}`,
-				callback: () => {
-					this.activateView(folder.path);
+		// Register commands for existing folders
+		this.registerBoardCommands();
+
+		// Listen for vault events to dynamically update commands
+		this.registerEvent(
+			this.app.vault.on('create', (file) => {
+				if (file instanceof TFolder) {
+					this.registerBoardCommands();
+				} else if (file instanceof TFile && file.extension === 'md') {
+					// A note was created, might make a folder eligible for a board
+					this.registerBoardCommands();
 				}
-			});
-		});
+			})
+		);
+
+		this.registerEvent(
+			this.app.vault.on('delete', (file) => {
+				if (file instanceof TFolder) {
+					this.registerBoardCommands();
+				} else if (file instanceof TFile && file.extension === 'md') {
+					// A note was deleted, might make a folder ineligible for a board
+					this.registerBoardCommands();
+				}
+			})
+		);
+
+		this.registerEvent(
+			this.app.vault.on('rename', (file, oldPath) => {
+				if (file instanceof TFolder) {
+					this.registerBoardCommands();
+				} else if (file instanceof TFile && file.extension === 'md') {
+					// A note was moved, might affect which folders are eligible for boards
+					this.registerBoardCommands();
+				}
+			})
+		);
 
 		// Add settings tab
 		this.addSettingTab(new ReboarderSettingTab(this.app, this));
+	}
+
+	private registerBoardCommands() {
+		// Get current folders
+		const folders = this.getFolders();
+		const currentFolderPaths = new Set(folders.map(f => f.path));
+
+		// Remove tracked paths for folders that no longer exist or no longer have notes
+		this.registeredFolderPaths.forEach(path => {
+			if (!currentFolderPaths.has(path)) {
+				this.registeredFolderPaths.delete(path);
+			}
+		});
+
+		// Add commands for new folders
+		folders.forEach((folder: TFolder) => {
+			if (!this.registeredFolderPaths.has(folder.path)) {
+				const commandId = `open-reboarder-${folder.name.replace(/\s+/g, '-').toLowerCase()}`;
+				
+				this.addCommand({
+					id: commandId,
+					name: `Open board: ${folder.name}`,
+					callback: () => {
+						this.activateView(folder.path);
+					}
+				});
+				
+				this.registeredFolderPaths.add(folder.path);
+			}
+		});
 	}
 
 	async activateView(selectedBoardPath: string) {
@@ -122,6 +178,8 @@ export default class ReboarderPlugin extends Plugin {
 
 	async saveSettings() {
 		await this.saveData(this.settings);
+		// Re-register commands when settings change (excluded folders might have changed)
+		this.registerBoardCommands();
 	}
 
 	async loadSnoozeData() {
@@ -173,7 +231,8 @@ export default class ReboarderPlugin extends Plugin {
 	}
 
 	onunload() {
-		// Cleanup
+		// Commands are automatically cleaned up by Obsidian when the plugin unloads
+		this.registeredFolderPaths.clear();
 	}
 }
 
