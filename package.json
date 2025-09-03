@@ -5,7 +5,7 @@
 	"main": "main.js",
 	"scripts": {
 		"build": "tsc -noEmit -skipLibCheck && node esbuild.config.mjs production",
-		"build:watch": "chokidar '*.ts' '*.tsx' 'components/*.tsx' -c 'npm run build'"
+		"build:watch": "chokidar '*.json' '*.css' '*.ts' '*.tsx' 'components/*.tsx' -c 'npm run build'"
 	},
 	"keywords": [],
 	"author": "",

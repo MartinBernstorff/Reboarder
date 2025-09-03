@@ -2,6 +2,10 @@
 
 A kanban-style board view for organizing notes by folder with snooze and unpin functionality.
 
+## New note button
+
+Each board shows a "New note" button next to the board title. Clicking it creates a new Markdown file in that board's folder (using a unique name like `Untitled.md`, `Untitled 1.md`, …) and opens it immediately.
+
 ## Local Development
 
 ### Quick Setup
