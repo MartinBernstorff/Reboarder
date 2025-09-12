@@ -16,6 +16,10 @@ export const ReboarderView: React.FC<{
     await plugin.snoozeNote(file, 0); // 0 triggers incremental logic
   };
 
+  const handleDeleteNote = async (file: TFile) => {
+	await plugin.deleteNote(file);
+  }
+
   const handleUnpinNote = async (file: TFile) => {
     await plugin.unpinNote(file);
   };
@@ -49,6 +53,7 @@ export const ReboarderView: React.FC<{
             onSnoozeNote={handleSnoozeNote}
             onUnpinNote={handleUnpinNote}
             onOpenNote={handleOpenNote}
+			onDeleteNote={handleDeleteNote}
           />
         </div>
       </div>

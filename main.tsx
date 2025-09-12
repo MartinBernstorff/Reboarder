@@ -210,6 +210,15 @@ export default class ReboarderPlugin extends Plugin {
 		new Notice(`${file.name} snoozed for ${nextInterval} hour(s)`);
 	}
 
+	async deleteNote(file: TFile) {
+		try {
+			await this.app.vault.delete(file);
+			new Notice(`Note deleted`);
+		} catch (error) {
+			new Notice(`Error deleting note: ${error.message}`);
+		}
+	}
+
 	async unpinNote(file: TFile) {
 		const newPath = file.name;
 		try {
