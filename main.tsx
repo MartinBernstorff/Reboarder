@@ -212,6 +212,14 @@ export default class ReboarderPlugin extends Plugin {
 		const expireTime = now + (intervalHours * 60 * 60 * 1000);
 		this.snoozeData[file.path] = { interval: intervalHours, expire: expireTime };
 		await this.saveSnoozeData();
+		
+		// Touch the file to update its timestamp
+		try {
+			await this.app.vault.touch(file);
+		} catch (error) {
+			console.warn(`Failed to touch file ${file.path}:`, error);
+		}
+		
 		new Notice(`${file.name} snoozed for ${intervalHours} hour(s)`);
 	}
 
