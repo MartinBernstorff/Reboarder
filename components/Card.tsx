@@ -7,13 +7,14 @@ import { CustomSnoozeModal } from './CustomSnoozeModal';
 interface CardProps {
 	file: TFile;
 	plugin: ReboarderPlugin;
+	onModify: () => void;
 	onSnooze: () => void;
 	onUnpin: () => void;
 	onOpen: () => void;
 	onDelete: () => void; // Optional delete handler
 }
 
-export const Card: React.FC<CardProps> = ({ file, plugin, onSnooze, onUnpin, onOpen, onDelete }) => {
+export const Card: React.FC<CardProps> = ({ file, plugin, onModify, onSnooze, onUnpin, onOpen, onDelete }) => {
 	const app = useApp();
 	const [showCustomSnooze, setShowCustomSnooze] = useState(false);
 	const previewRef = useRef<HTMLDivElement>(null);
@@ -80,9 +81,7 @@ export const Card: React.FC<CardProps> = ({ file, plugin, onSnooze, onUnpin, onO
 
 	const handleSnoozeClick = (e: React.MouseEvent) => {
 		e.stopPropagation();
-		// For now, just use the incremental snooze. 
-		// Could add right-click menu for custom snooze later
-		onSnooze();
+		setShowCustomSnooze(true);
 	};
 
 	return (
@@ -99,6 +98,7 @@ export const Card: React.FC<CardProps> = ({ file, plugin, onSnooze, onUnpin, onO
 						onClick={(e) => {
 							e.stopPropagation();
 							onDelete();
+							onModify();
 						}}
 						className="reboarder-btn reboarder-btn-delete"
 					>
@@ -108,6 +108,7 @@ export const Card: React.FC<CardProps> = ({ file, plugin, onSnooze, onUnpin, onO
 						onClick={(e) => {
 							e.stopPropagation();
 							onUnpin();
+							onModify();
 						}}
 						className="reboarder-btn reboarder-btn-unpin"
 					>
@@ -115,13 +116,8 @@ export const Card: React.FC<CardProps> = ({ file, plugin, onSnooze, onUnpin, onO
 					</button>
 					<button
 						onClick={handleSnoozeClick}
-						onContextMenu={(e) => {
-							e.preventDefault();
-							e.stopPropagation();
-							setShowCustomSnooze(true);
-						}}
 						className="reboarder-btn"
-						title="Left-click for incremental snooze, right-click for custom duration"
+						title="Set a custom snooze duration (in days)"
 					>
 						Snooze
 					</button>

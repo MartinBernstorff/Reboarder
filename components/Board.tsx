@@ -6,7 +6,6 @@ import { Card } from './Card';
 interface BoardProps {
 	folder: TFolder;
 	plugin: ReboarderPlugin;
-	onSnoozeNote: (file: TFile) => void;
 	onUnpinNote: (file: TFile) => void;
 	onOpenNote: (file: TFile) => void;
 	onDeleteNote: (file: TFile) => void;
@@ -15,7 +14,6 @@ interface BoardProps {
 export const Board: React.FC<BoardProps> = ({
 	folder,
 	plugin,
-	onSnoozeNote,
 	onUnpinNote,
 	onOpenNote,
 	onDeleteNote
@@ -36,15 +34,13 @@ export const Board: React.FC<BoardProps> = ({
 		setNotes(folderNotes);
 	};
 
+	const handleModify = () => {
+		setRefreshKey(prev => prev + 1);
+	}
+
 	useEffect(() => {
 		updateNotesList();
 	}, [folder, plugin, refreshKey]);
-
-	const handleSnoozeNote = async (file: TFile) => {
-		await onSnoozeNote(file);
-		// Force a re-render by incrementing the refresh key
-		setRefreshKey(prev => prev + 1);
-	};
 
 	return (
 		<div className="reboarder-board">
@@ -58,7 +54,8 @@ export const Board: React.FC<BoardProps> = ({
 							key={note.path}
 							file={note}
 							plugin={plugin}
-							onSnooze={() => handleSnoozeNote(note)}
+							onModify={() => handleModify()}
+							onSnooze={() => handleModify()}
 							onUnpin={() => onUnpinNote(note)}
 							onOpen={() => onOpenNote(note)}
 							onDelete={() => onDeleteNote(note)}

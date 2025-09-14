@@ -193,21 +193,26 @@ export default class ReboarderPlugin extends Plugin {
 	}
 
 	async snoozeNote(file: TFile, hours: number) {
-		// Get all snooze durations sorted by value
-		const durations = Object.values(this.settings.snoozeDurations).sort((a, b) => a - b);
-		let nextIdx = 0;
 		const now = Date.now();
-		const entry = this.snoozeData[file.path];
-		if (entry && entry.expire > now) {
-			// Find current interval index
-			const currentIdx = durations.findIndex(d => d === entry.interval);
-			nextIdx = currentIdx !== -1 && currentIdx < durations.length - 1 ? currentIdx + 1 : durations.length - 1;
+		let intervalHours: number;
+		if (hours && hours > 0) {
+			// Explicit custom duration (already in hours)
+			intervalHours = hours;
+		} else {
+			// Incremental logic based on configured durations
+			const durations = Object.values(this.settings.snoozeDurations).sort((a, b) => a - b);
+			let nextIdx = 0;
+			const entry = this.snoozeData[file.path];
+			if (entry && entry.expire > now) {
+				const currentIdx = durations.findIndex(d => d === entry.interval);
+				nextIdx = currentIdx !== -1 && currentIdx < durations.length - 1 ? currentIdx + 1 : durations.length - 1;
+			}
+			intervalHours = durations[nextIdx];
 		}
-		const nextInterval = durations[nextIdx];
-		const expireTime = now + (nextInterval * 60 * 60 * 1000);
-		this.snoozeData[file.path] = { interval: nextInterval, expire: expireTime };
+		const expireTime = now + (intervalHours * 60 * 60 * 1000);
+		this.snoozeData[file.path] = { interval: intervalHours, expire: expireTime };
 		await this.saveSnoozeData();
-		new Notice(`${file.name} snoozed for ${nextInterval} hour(s)`);
+		new Notice(`${file.name} snoozed for ${intervalHours} hour(s)`);
 	}
 
 	async deleteNote(file: TFile) {
@@ -393,5 +398,74 @@ class ReboarderSettingTab extends PluginSettingTab {
 			this.plugin.settings.excludedFolders = lines;
 			await this.plugin.saveSettings();
 		});
+
+			// Snooze data section
+			containerEl.createEl('h3', { text: 'Snoozed Notes' });
+			containerEl.createEl('p', { text: 'Currently snoozed notes with wake times. You can clear individual entries or remove expired ones.', cls: 'setting-item-description' });
+
+			const snoozeContainer = containerEl.createEl('div', { cls: 'reboarder-snooze-list' });
+
+			// Utility to format timestamp
+			const formatDate = (ts: number) => {
+				try {
+					return new Date(ts).toLocaleString();
+				} catch {
+					return ts.toString();
+				}
+			};
+
+			// Remove expired button
+			const expiredBtn = containerEl.createEl('button', { text: 'Remove expired snoozes', cls: 'mod-warning' });
+			expiredBtn.addEventListener('click', async () => {
+				const now = Date.now();
+				let changed = false;
+				Object.entries(this.plugin.snoozeData).forEach(([path, entry]) => {
+					if (entry.expire <= now) {
+						delete this.plugin.snoozeData[path];
+						changed = true;
+					}
+				});
+				if (changed) {
+					await this.plugin.saveSnoozeData();
+					this.display(); // re-render
+				}
+			});
+
+			const refreshSnoozeList = () => {
+				snoozeContainer.empty();
+				const entries = Object.entries(this.plugin.snoozeData);
+				if (entries.length === 0) {
+					snoozeContainer.createEl('div', { text: 'No snoozed notes' });
+					return;
+				}
+				entries
+					.sort((a, b) => a[1].expire - b[1].expire) // soonest first
+					.forEach(([path, data]) => {
+						const row = snoozeContainer.createEl('div', { cls: 'reboarder-snooze-row' });
+						const meta = this.app.vault.getAbstractFileByPath(path);
+						let name: string | undefined;
+						if (meta instanceof TFile) {
+							name = meta.name;
+						} else if (meta instanceof TFolder) {
+							name = meta.name;
+						} else {
+							name = path.split('/').pop();
+						}
+						row.createEl('div', { text: name, cls: 'reboarder-snooze-name' });
+						row.createEl('div', { text: path, cls: 'reboarder-snooze-path' });
+						row.createEl('div', { text: `${data.interval}h`, cls: 'reboarder-snooze-interval' });
+						row.createEl('div', { text: formatDate(data.expire), cls: 'reboarder-snooze-expire' });
+						const status = Date.now() < data.expire ? 'active' : 'expired';
+						row.createEl('div', { text: status, cls: `reboarder-snooze-status status-${status}` });
+						const clearBtn = row.createEl('button', { text: 'Clear', cls: 'reboarder-snooze-clear' });
+						clearBtn.addEventListener('click', async () => {
+							delete this.plugin.snoozeData[path];
+							await this.plugin.saveSnoozeData();
+							refreshSnoozeList();
+						});
+					});
+			};
+
+			refreshSnoozeList();
 	}
 }

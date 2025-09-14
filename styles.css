@@ -342,3 +342,70 @@
 .reboarder-new-note-btn:hover {
     background: var(--interactive-accent-hover);
 }
+
+/* Snoozed notes list (settings) */
+.reboarder-snooze-list {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    margin-top: 8px;
+    margin-bottom: 16px;
+    font-size: 12px;
+}
+
+.reboarder-snooze-row {
+    display: grid;
+    grid-template-columns: 140px 1fr 60px 170px 70px 60px;
+    gap: 8px;
+    align-items: center;
+    padding: 6px 8px;
+    border: 1px solid var(--background-modifier-border);
+    border-radius: 4px;
+    background: var(--background-secondary);
+}
+
+.reboarder-snooze-row:nth-child(even) {
+    background: var(--background-secondary-alt);
+}
+
+.reboarder-snooze-name {
+    font-weight: 600;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.reboarder-snooze-path {
+    font-family: var(--font-monospace);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    opacity: 0.8;
+}
+
+.reboarder-snooze-interval,
+.reboarder-snooze-expire,
+.reboarder-snooze-status {
+    font-family: var(--font-monospace);
+}
+
+.reboarder-snooze-status.status-active {
+    color: var(--text-success);
+}
+
+.reboarder-snooze-status.status-expired {
+    color: var(--text-error);
+}
+
+.reboarder-snooze-clear {
+    padding: 4px 8px;
+    font-size: 11px;
+    border: 1px solid var(--background-modifier-border);
+    background: var(--background-primary);
+    border-radius: 4px;
+    cursor: pointer;
+}
+
+.reboarder-snooze-clear:hover {
+    background: var(--background-modifier-hover);
+}

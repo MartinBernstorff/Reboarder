@@ -12,10 +12,6 @@ export const ReboarderView: React.FC<{
 
   console.log('ReactReboarderView: selectedBoardPath =', selectedBoardPath);
 
-  const handleSnoozeNote = async (file: TFile) => {
-    await plugin.snoozeNote(file, 0); // 0 triggers incremental logic
-  };
-
   const handleDeleteNote = async (file: TFile) => {
 	await plugin.deleteNote(file);
   }
@@ -50,7 +46,6 @@ export const ReboarderView: React.FC<{
           <Board
             folder={folder}
             plugin={plugin}
-            onSnoozeNote={handleSnoozeNote}
             onUnpinNote={handleUnpinNote}
             onOpenNote={handleOpenNote}
 			onDeleteNote={handleDeleteNote}
