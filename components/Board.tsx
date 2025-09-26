@@ -21,6 +21,27 @@ export const Board: React.FC<BoardProps> = ({
 	const [notes, setNotes] = useState<TFile[]>([]);
 	const [refreshKey, setRefreshKey] = useState(0);
 
+	const createNewNote = async () => {
+		try {
+			// Generate a unique file name
+			const baseName = 'New Note';
+			let fileName = `${baseName}.md`;
+			let idx = 1;
+			while (plugin.app.vault.getAbstractFileByPath(`${folder.path}/${fileName}`)) {
+				fileName = `${baseName} ${idx}.md`;
+				idx++;
+			}
+
+			const file = await plugin.app.vault.create(`${folder.path}/${fileName}`, ` `);
+			// Open newly created note
+			onOpenNote(file);
+			// Refresh board
+			setRefreshKey(prev => prev + 1);
+		} catch (e) {
+			console.error('Failed to create note', e);
+		}
+	};
+
 	const updateNotesList = () => {
 		// Get notes in folder
 		const folderNotes = folder.children.filter(child =>
@@ -44,7 +65,10 @@ export const Board: React.FC<BoardProps> = ({
 
 	return (
 		<div className="reboarder-board">
-			<h3 className="reboarder-board-title">{folder.name}</h3>
+			<div style={{display:'flex', alignItems:'center', justifyContent:'space-between', gap:'8px', marginBottom:'8px'}}>
+				<h3 className="reboarder-board-title" style={{marginBottom:0}}>{folder.name}</h3>
+				<button className="reboarder-new-note-btn" onClick={createNewNote} aria-label="Add new note">+ New</button>
+			</div>
 			<div className="reboarder-cards-container">
 				{notes.length === 0 ? (
 					<div className="reboarder-empty-board">No notes in this folder</div>

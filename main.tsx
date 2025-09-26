@@ -22,9 +22,11 @@ interface ReboarderSettings {
 	excludedFolders: string[];
 }
 
-interface SnoozeData {
-	[filePath: string]: { interval: number; expire: number }; // interval in hours, expiration timestamp
+// Legacy (removed) central snooze cache interface retained only for migration
+interface LegacySnoozeData {
+	[filePath: string]: { interval: number; expire: number };
 }
+type FrontmatterMap = { [key: string]: string | number | boolean };
 
 const DEFAULT_SETTINGS: ReboarderSettings = {
 	snoozeDurations: {
@@ -35,9 +37,11 @@ const DEFAULT_SETTINGS: ReboarderSettings = {
 	excludedFolders: []
 };
 
+const SNOOZE_INTERVAL_KEY = 'reboarder_snooze_interval';
+const SNOOZE_EXPIRE_KEY = 'reboarder_snooze_expire';
+
 export default class ReboarderPlugin extends Plugin {
 	settings: ReboarderSettings;
-	snoozeData: SnoozeData = {};
 	private registeredFolderPaths: Set<string> = new Set();
 
 	getFolders(): TFolder[] {
@@ -74,7 +78,7 @@ export default class ReboarderPlugin extends Plugin {
 
 	async onload() {
 		await this.loadSettings();
-		await this.loadSnoozeData();
+		await this.migrateLegacySnoozeData();
 
 		// Register the board view
 		this.registerView(
@@ -182,27 +186,143 @@ export default class ReboarderPlugin extends Plugin {
 		this.registerBoardCommands();
 	}
 
-	async loadSnoozeData() {
-		const data = await this.loadData();
-		this.snoozeData = data?.snoozeData || {};
+	/**
+	 * Migration: move legacy central snoozeData store into per-note frontmatter.
+	 */
+	private async migrateLegacySnoozeData() {
+		const data = await this.loadData() as Record<string, unknown> & { snoozeData?: LegacySnoozeData };
+		const legacy: LegacySnoozeData | undefined = data?.snoozeData;
+		if (!legacy || Object.keys(legacy).length === 0) return;
+
+		for (const [path, entry] of Object.entries(legacy)) {
+			const file = this.app.vault.getAbstractFileByPath(path);
+			if (file && file instanceof TFile && file.extension === 'md') {
+				// Only write if not already present
+				const existing = this.getSnoozeEntry(file);
+				if (!existing) {
+					await this.setSnoozeEntry(file, entry.interval, entry.expire);
+				}
+			}
+		}
+		// Remove legacy data and persist
+		delete data.snoozeData;
+		await this.saveData(data);
+		new Notice('Reboarder: migrated legacy snoozes to note frontmatter');
 	}
 
-	async saveSnoozeData() {
-		const currentData = await this.loadData();
-		await this.saveData({ ...currentData, snoozeData: this.snoozeData });
+	/** Read current frontmatter using metadata cache. */
+	private getFrontmatter(file: TFile): FrontmatterMap | null {
+		const cache = this.app.metadataCache.getFileCache(file);
+		return cache?.frontmatter ?? null;
+	}
+
+	/** Return snooze entry from a note frontmatter, if present and valid. */
+	getSnoozeEntry(file: TFile): { interval: number; expire: number } | null {
+		const fm = this.getFrontmatter(file);
+		if (!fm) return null;
+		const interval = fm[SNOOZE_INTERVAL_KEY];
+		const expire = fm[SNOOZE_EXPIRE_KEY];
+		if (typeof interval === 'number' && typeof expire === 'number') {
+			return { interval, expire };
+		}
+		return null;
+	}
+
+	/** Generic frontmatter edit helper (very lightweight YAML manip). */
+	private async editFrontmatter(file: TFile, mutator: (map: FrontmatterMap) => void | boolean) {
+		const content = await this.app.vault.read(file);
+		let fmStart = -1;
+		let fmEnd = -1;
+		if (content.startsWith('---')) {
+			fmStart = 0;
+			fmEnd = content.indexOf('\n---', 3);
+			if (fmEnd !== -1) {
+				// position right after closing --- line
+				const after = content.indexOf('\n', fmEnd + 4);
+				if (after !== -1) fmEnd = after + 1; // include newline after closing ---
+				else fmEnd = content.length;
+			}
+		}
+
+		let frontmatterRaw = '';
+		if (fmStart === 0 && fmEnd !== -1) {
+			// Extract between first '---\n' and the line with only '---'
+			const fmBlock = content.slice(0, fmEnd);
+			const lines = fmBlock.split('\n');
+			lines.shift(); // remove opening ---
+			// remove closing --- (last non-empty '---')
+			while (lines.length > 0 && lines[lines.length - 1].trim() === '') lines.pop();
+			if (lines.length > 0 && lines[lines.length - 1].trim() === '---') lines.pop();
+			frontmatterRaw = lines.join('\n');
+		}
+
+		const map: FrontmatterMap = {};
+		if (frontmatterRaw) {
+			frontmatterRaw.split(/\n/).forEach(line => {
+				const match = line.match(/^([A-Za-z0-9_-]+):\s*(.*)$/);
+				if (match) {
+					map[match[1]] = isNaN(Number(match[2])) ? match[2] : Number(match[2]);
+				}
+			});
+		}
+
+		mutator(map);
+
+		// Clean out undefined / null
+		Object.keys(map).forEach(k => { if (map[k] === undefined || map[k] === null) delete map[k]; });
+
+		// Remove our keys if they are not both present (avoid partial data)
+		if (!(SNOOZE_INTERVAL_KEY in map && SNOOZE_EXPIRE_KEY in map)) {
+			delete map[SNOOZE_INTERVAL_KEY];
+			delete map[SNOOZE_EXPIRE_KEY];
+		}
+
+		let newContent: string;
+		const keys = Object.keys(map);
+		if (keys.length === 0) {
+			// Remove frontmatter entirely if it only contained our keys or became empty
+			if (fmStart === 0 && fmEnd !== -1) {
+				newContent = content.slice(fmEnd); // strip old frontmatter
+			} else {
+				newContent = content; // nothing to change
+			}
+		} else {
+			const fmSerialized = keys.map(k => `${k}: ${map[k]}`).join('\n');
+			const rebuilt = `---\n${fmSerialized}\n---\n`;
+			if (fmStart === 0 && fmEnd !== -1) {
+				newContent = rebuilt + content.slice(fmEnd);
+			} else {
+				newContent = rebuilt + content;
+			}
+		}
+		if (newContent !== content) {
+			await this.app.vault.modify(file, newContent);
+		}
+	}
+
+	private async setSnoozeEntry(file: TFile, interval: number, expire: number) {
+		await this.editFrontmatter(file, map => {
+			map[SNOOZE_INTERVAL_KEY] = interval;
+			map[SNOOZE_EXPIRE_KEY] = expire;
+		});
+	}
+
+	async clearSnoozeEntry(file: TFile) {
+		await this.editFrontmatter(file, map => {
+			delete map[SNOOZE_INTERVAL_KEY];
+			delete map[SNOOZE_EXPIRE_KEY];
+		});
 	}
 
 	async snoozeNote(file: TFile, hours: number) {
 		const now = Date.now();
 		let intervalHours: number;
 		if (hours && hours > 0) {
-			// Explicit custom duration (already in hours)
-			intervalHours = hours;
+			intervalHours = hours; // explicit
 		} else {
-			// Incremental logic based on configured durations
 			const durations = Object.values(this.settings.snoozeDurations).sort((a, b) => a - b);
 			let nextIdx = 0;
-			const entry = this.snoozeData[file.path];
+			const entry = this.getSnoozeEntry(file);
 			if (entry && entry.expire > now) {
 				const currentIdx = durations.findIndex(d => d === entry.interval);
 				nextIdx = currentIdx !== -1 && currentIdx < durations.length - 1 ? currentIdx + 1 : durations.length - 1;
@@ -210,16 +330,7 @@ export default class ReboarderPlugin extends Plugin {
 			intervalHours = durations[nextIdx];
 		}
 		const expireTime = now + (intervalHours * 60 * 60 * 1000);
-		this.snoozeData[file.path] = { interval: intervalHours, expire: expireTime };
-		await this.saveSnoozeData();
-		
-		// Touch the file to update its timestamp
-		try {
-			await this.app.vault.touch(file);
-		} catch (error) {
-			console.warn(`Failed to touch file ${file.path}:`, error);
-		}
-		
+		await this.setSnoozeEntry(file, intervalHours, expireTime);
 		new Notice(`${file.name} snoozed for ${intervalHours} hour(s)`);
 	}
 
@@ -243,9 +354,8 @@ export default class ReboarderPlugin extends Plugin {
 	}
 
 	isNoteSnoozed(file: TFile): boolean {
-	const entry = this.snoozeData[file.path];
-	if (!entry) return false;
-	return Date.now() < entry.expire;
+		const entry = this.getSnoozeEntry(file);
+		return !!(entry && Date.now() < entry.expire);
 	}
 
 	async openFileInLeaf(file: TFile, leaf: WorkspaceLeaf) {
@@ -407,72 +517,61 @@ class ReboarderSettingTab extends PluginSettingTab {
 			await this.plugin.saveSettings();
 		});
 
-			// Snooze data section
+			// Snoozed notes (frontmatter) section
 			containerEl.createEl('h3', { text: 'Snoozed Notes' });
-			containerEl.createEl('p', { text: 'Currently snoozed notes with wake times. You can clear individual entries or remove expired ones.', cls: 'setting-item-description' });
-
+			containerEl.createEl('p', { text: 'Notes currently snoozed (data stored in each note frontmatter).', cls: 'setting-item-description' });
 			const snoozeContainer = containerEl.createEl('div', { cls: 'reboarder-snooze-list' });
 
-			// Utility to format timestamp
 			const formatDate = (ts: number) => {
-				try {
-					return new Date(ts).toLocaleString();
-				} catch {
-					return ts.toString();
-				}
+				try { return new Date(ts).toLocaleString(); } catch { return ts.toString(); }
 			};
-
-			// Remove expired button
-			const expiredBtn = containerEl.createEl('button', { text: 'Remove expired snoozes', cls: 'mod-warning' });
-			expiredBtn.addEventListener('click', async () => {
-				const now = Date.now();
-				let changed = false;
-				Object.entries(this.plugin.snoozeData).forEach(([path, entry]) => {
-					if (entry.expire <= now) {
-						delete this.plugin.snoozeData[path];
-						changed = true;
-					}
-				});
-				if (changed) {
-					await this.plugin.saveSnoozeData();
-					this.display(); // re-render
-				}
-			});
 
 			const refreshSnoozeList = () => {
 				snoozeContainer.empty();
-				const entries = Object.entries(this.plugin.snoozeData);
+				const files = this.app.vault.getMarkdownFiles();
+				const entries: { file: TFile; interval: number; expire: number }[] = [];
+				files.forEach(f => {
+					const fm = this.app.metadataCache.getFileCache(f)?.frontmatter;
+					if (!fm) return;
+					const interval = fm[SNOOZE_INTERVAL_KEY];
+					const expire = fm[SNOOZE_EXPIRE_KEY];
+					if (typeof interval === 'number' && typeof expire === 'number') {
+						entries.push({ file: f, interval, expire });
+					}
+				});
 				if (entries.length === 0) {
 					snoozeContainer.createEl('div', { text: 'No snoozed notes' });
 					return;
 				}
-				entries
-					.sort((a, b) => a[1].expire - b[1].expire) // soonest first
-					.forEach(([path, data]) => {
-						const row = snoozeContainer.createEl('div', { cls: 'reboarder-snooze-row' });
-						const meta = this.app.vault.getAbstractFileByPath(path);
-						let name: string | undefined;
-						if (meta instanceof TFile) {
-							name = meta.name;
-						} else if (meta instanceof TFolder) {
-							name = meta.name;
-						} else {
-							name = path.split('/').pop();
-						}
-						row.createEl('div', { text: name, cls: 'reboarder-snooze-name' });
-						row.createEl('div', { text: path, cls: 'reboarder-snooze-path' });
-						row.createEl('div', { text: `${data.interval}h`, cls: 'reboarder-snooze-interval' });
-						row.createEl('div', { text: formatDate(data.expire), cls: 'reboarder-snooze-expire' });
-						const status = Date.now() < data.expire ? 'active' : 'expired';
-						row.createEl('div', { text: status, cls: `reboarder-snooze-status status-${status}` });
-						const clearBtn = row.createEl('button', { text: 'Clear', cls: 'reboarder-snooze-clear' });
-						clearBtn.addEventListener('click', async () => {
-							delete this.plugin.snoozeData[path];
-							await this.plugin.saveSnoozeData();
-							refreshSnoozeList();
-						});
+				entries.sort((a, b) => a.expire - b.expire).forEach(entry => {
+					const { file, interval, expire } = entry;
+					const row = snoozeContainer.createEl('div', { cls: 'reboarder-snooze-row' });
+					row.createEl('div', { text: file.basename, cls: 'reboarder-snooze-name' });
+					row.createEl('div', { text: file.path, cls: 'reboarder-snooze-path' });
+					row.createEl('div', { text: `${interval}h`, cls: 'reboarder-snooze-interval' });
+					row.createEl('div', { text: formatDate(expire), cls: 'reboarder-snooze-expire' });
+					const status = Date.now() < expire ? 'active' : 'expired';
+					row.createEl('div', { text: status, cls: `reboarder-snooze-status status-${status}` });
+					const clearBtn = row.createEl('button', { text: 'Clear', cls: 'reboarder-snooze-clear' });
+					clearBtn.addEventListener('click', async () => {
+						await this.plugin.clearSnoozeEntry(file);
+						refreshSnoozeList();
 					});
+				});
 			};
+
+			const expiredBtn = containerEl.createEl('button', { text: 'Remove expired snoozes', cls: 'mod-warning' });
+			expiredBtn.addEventListener('click', async () => {
+				const now = Date.now();
+				const files = this.app.vault.getMarkdownFiles();
+				for (const f of files) {
+					const entry = this.plugin.getSnoozeEntry(f);
+					if (entry && entry.expire <= now) {
+						await this.plugin.clearSnoozeEntry(f);
+					}
+				}
+				refreshSnoozeList();
+			});
 
 			refreshSnoozeList();
 	}
