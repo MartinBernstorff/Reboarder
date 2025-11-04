@@ -117,20 +117,12 @@ export class ReboarderView extends ItemView {
 	async onOpen() {
 		console.log('ReboarderView onOpen called, selectedBoardPath:', this.selectedBoardPath);
 
-		// More robust container element selection for mobile compatibility
-		let container = this.containerEl.children[1];
-		
-		// If children[1] doesn't exist, create it
-		if (!container) {
-			console.log('Container element not found at children[1], creating new div');
-			container = this.containerEl.createDiv();
-		}
-		
+		const container = this.containerEl.children[1];
 		container.empty();
 		container.addClass('reboarder-container');
 
 		// Create React root
-		this.root = createRoot(container as HTMLElement);
+		this.root = createRoot(container);
 
 		// Render the component (might be with empty selectedBoardPath initially)
 		this.renderReactComponent();
