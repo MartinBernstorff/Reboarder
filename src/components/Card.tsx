@@ -23,7 +23,6 @@ export const Card: React.FC<CardProps> = ({ file, plugin, onUnpin, onOpen, onDel
 		const renderMarkdownPreview = async (file: TFile): Promise<void> => {
 			try {
 				const content = await app.vault.read(file);
-
 				// Truncate content to the specified length for preview
 				const maxLength = plugin.settings.cardPreviewLength;
 				let truncatedContent = content;
@@ -68,7 +67,12 @@ export const Card: React.FC<CardProps> = ({ file, plugin, onUnpin, onOpen, onDel
 		};
 
 		const tfile = app.vault.getAbstractFileByPath(file.path)! as TFile;
-		renderMarkdownPreview(tfile);
+
+		if (!tfile) {
+			console.error("File not found");
+		} else {
+			renderMarkdownPreview(tfile);
+		}
 
 		// Cleanup function
 		return () => {
@@ -125,7 +129,6 @@ export const Card: React.FC<CardProps> = ({ file, plugin, onUnpin, onOpen, onDel
 				file={file}
 				isOpen={showCustomSnooze}
 				onClose={() => setShowCustomSnooze(false)}
-				onComplete={() => console.log("Completed")}
 			/>
 		</>
 	);

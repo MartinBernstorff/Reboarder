@@ -21,7 +21,7 @@ export const Board: React.FC<BoardProps> = ({
 	const fileNames = files.map(f => f.name);
 
 	const boardFiles = files
-		.filter(it => it.path.contains(folder.path))
+		.filter(it => it.path.contains(folder.path + "/"))
 		.filter(it => !isFileRecordSnoozed(it))
 		.sort((a, b) => b.mtime - a.mtime);
 
@@ -64,22 +64,13 @@ export const Board: React.FC<BoardProps> = ({
 							file={fileRecord}
 							plugin={plugin}
 							onUnpin={async () => {
-								console.log("Attempting to unpin note:", fileRecord);
-								console.log("Current path:", fileRecord.path);
-								console.log("New path will be:", fileRecord.name);
 								const newPath = fileRecord.name;
-								try {
-									console.log("Calling update with key:", fileRecord.path);
-									const result = await plugin.fileCollection.update(fileRecord.name, (draft) => {
-										draft.path = newPath;
-									});
-									console.log("Update completed, result:", result);
-								} catch (error) {
-									console.error("Error updating file:", error);
-								}
+								plugin.fileCollection.update(fileRecord.name, (draft) => {
+									draft.path = newPath;
+								});
 							}}
 							onOpen={() => onOpenNote(fileRecord)}
-							onDelete={async () => await plugin.fileCollection.delete(fileRecord.name)}
+							onDelete={()=> plugin.fileCollection.delete(fileRecord.name)}
 						/>
 					))
 				)}

@@ -11,6 +11,14 @@ import { ReboarderView as ReactReboarderView } from 'src/View';
 import { AppContext, PluginContext } from 'src/AppContext';
 import { QueryClient } from '@tanstack/react-query';
 import ReboarderPlugin from 'app/ReboarderPlugin';
+import {
+	SNOOZE_INTERVAL_KEY,
+	SNOOZE_EXPIRE_KEY,
+} from 'src/Snooze';
+import type {
+	LegacySnoozeData,
+	FrontmatterMap,
+} from 'src/Snooze';
 
 
 export const queryConfig = {
@@ -28,14 +36,9 @@ export const queryClient = new QueryClient({
 	defaultOptions: queryConfig,
 });
 
-// Legacy (removed) central snooze cache interface retained only for migration
-export interface LegacySnoozeData {
-	[filePath: string]: { interval: number; expire: number };
-}
-export type FrontmatterMap = { [key: string]: string | number | boolean };
-
-export const SNOOZE_INTERVAL_KEY = 'reboarder_snooze_interval';
-export const SNOOZE_EXPIRE_KEY = 'reboarder_snooze_expire';
+// Re-export snooze-related types and constants
+export type { LegacySnoozeData, FrontmatterMap };
+export { SNOOZE_INTERVAL_KEY, SNOOZE_EXPIRE_KEY };
 
 export const REBOARDER_VIEW_TYPE = 'reboarder-view';
 

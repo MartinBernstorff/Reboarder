@@ -77,7 +77,7 @@ export class ReboarderSettingTab extends PluginSettingTab {
 			entries.sort((a, b) => a.expire - b.expire).forEach(entry => {
 				const { file, interval, expire } = entry;
 				const row = snoozeContainer.createEl('div', { cls: 'reboarder-snooze-row' });
-				row.createEl('div', { text: file.basename, cls: 'reboarder-snooze-name' });
+				row.createEl('div', { text: file.name, cls: 'reboarder-snooze-name' });
 				row.createEl('div', { text: file.path, cls: 'reboarder-snooze-path' });
 				row.createEl('div', { text: `${interval}h`, cls: 'reboarder-snooze-interval' });
 				row.createEl('div', { text: formatDate(expire), cls: 'reboarder-snooze-expire' });
@@ -85,7 +85,13 @@ export class ReboarderSettingTab extends PluginSettingTab {
 				row.createEl('div', { text: status, cls: `reboarder-snooze-status status-${status}` });
 				const clearBtn = row.createEl('button', { text: 'Clear', cls: 'reboarder-snooze-clear' });
 				clearBtn.addEventListener('click', async () => {
-					await this.plugin.clearSnoozeEntry(file);
+					// Update the file record in the collection to clear snooze info
+					await this.plugin.fileCollection.update(file.name, (draft) => {
+						draft.snoozeInfo = {
+							interval: undefined,
+							expireTime: undefined,
+						};
+					});
 					refreshSnoozeList();
 				});
 			});
@@ -98,7 +104,13 @@ export class ReboarderSettingTab extends PluginSettingTab {
 			for (const f of files) {
 				const entry = this.plugin.getSnoozeEntry(f);
 				if (entry && entry.expire <= now) {
-					await this.plugin.clearSnoozeEntry(f);
+					// Update the file record in the collection to clear snooze info
+					await this.plugin.fileCollection.update(f.basename, (draft) => {
+						draft.snoozeInfo = {
+							interval: undefined,
+							expireTime: undefined,
+						};
+					});
 				}
 			}
 			refreshSnoozeList();

@@ -6,14 +6,12 @@ interface CustomSnoozeModalProps {
 	file: FileRecord;
 	isOpen: boolean;
 	onClose: () => void;
-	onComplete: () => void;
 }
 
 export const CustomSnoozeModal: React.FC<CustomSnoozeModalProps> = ({ 
 	file, 
 	isOpen, 
 	onClose, 
-	onComplete
 }) => {
 	const plugin = usePlugin();
 	const inputRef = useRef<HTMLInputElement>(null);
@@ -45,10 +43,9 @@ export const CustomSnoozeModal: React.FC<CustomSnoozeModalProps> = ({
 		return () => document.removeEventListener('keydown', handleKeyDown);
 	}, [isOpen, days]);
 
-	const handleSnooze = async () => {
+	const handleSnooze = () => {
 		const hours = days * 24; // convert days to hours
-		await plugin.snoozeNote(file, hours);
-		onComplete();
+		plugin.snoozeNote(file, hours);
 		onClose();
 	};
 
