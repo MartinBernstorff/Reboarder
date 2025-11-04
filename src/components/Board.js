@@ -2,7 +2,7 @@ import { __awaiter } from "tslib";
 import { jsx as _jsx, jsxs as _jsxs } from "react/jsx-runtime";
 import { Card } from './Card';
 import { useLiveQuery } from '@tanstack/react-db';
-import { isFileRecordSnoozed } from 'app/ReboarderPlugin';
+import { isFileRecordSnoozed } from 'src/ReboarderPlugin';
 export const Board = ({ folder, plugin, onOpenNote }) => {
     const files = useLiveQuery((q) => q.from({ boards: plugin.fileCollection }))
         .data;

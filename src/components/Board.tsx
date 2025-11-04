@@ -2,7 +2,7 @@ import React from 'react';
 import { TFolder } from 'obsidian';
 import { Card } from './Card';
 import { useLiveQuery } from '@tanstack/react-db';
-import ReboarderPlugin, { FileRecord, isFileRecordSnoozed } from 'app/ReboarderPlugin';
+import ReboarderPlugin, { FileRecord, isFileRecordSnoozed } from 'src/ReboarderPlugin';
 
 interface BoardProps {
 	folder: TFolder;

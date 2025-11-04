@@ -1,7 +1,7 @@
 import { jsx as _jsx } from "react/jsx-runtime";
 import { TFolder } from 'obsidian';
 import { useApp, usePlugin } from '../hooks';
-import { Board } from 'app/components/Board';
+import { Board } from 'src/components/Board';
 export const ReboarderView = ({ selectedBoardPath, onOpenFile }) => {
     const app = useApp();
     const plugin = usePlugin();

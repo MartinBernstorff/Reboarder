@@ -1,7 +1,7 @@
 import { useContext } from 'react';
-import { AppContext, PluginContext } from 'app/AppContext';
+import { AppContext, PluginContext } from 'src/AppContext';
 import { App } from 'obsidian';
-import ReboarderPlugin from 'app/ReboarderPlugin';
+import ReboarderPlugin from 'src/ReboarderPlugin';
 
 export const useApp = (): App => {
   const app = useContext(AppContext);

@@ -10,7 +10,7 @@ import { Root, createRoot } from 'react-dom/client';
 import { ReboarderView as ReactReboarderView } from 'src/View';
 import { AppContext, PluginContext } from 'src/AppContext';
 import { QueryClient } from '@tanstack/react-query';
-import ReboarderPlugin from 'app/ReboarderPlugin';
+import ReboarderPlugin from 'src/ReboarderPlugin';
 import {
 	SNOOZE_INTERVAL_KEY,
 	SNOOZE_EXPIRE_KEY,
@@ -117,12 +117,20 @@ export class ReboarderView extends ItemView {
 	async onOpen() {
 		console.log('ReboarderView onOpen called, selectedBoardPath:', this.selectedBoardPath);
 
-		const container = this.containerEl.children[1];
+		// More robust container element selection for mobile compatibility
+		let container = this.containerEl.children[1];
+		
+		// If children[1] doesn't exist, create it
+		if (!container) {
+			console.log('Container element not found at children[1], creating new div');
+			container = this.containerEl.createDiv();
+		}
+		
 		container.empty();
 		container.addClass('reboarder-container');
 
 		// Create React root
-		this.root = createRoot(container);
+		this.root = createRoot(container as HTMLElement);
 
 		// Render the component (might be with empty selectedBoardPath initially)
 		this.renderReactComponent();

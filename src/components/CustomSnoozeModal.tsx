@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { usePlugin } from 'hooks';
-import { FileRecord } from 'app/ReboarderPlugin';
+import { FileRecord } from 'src/ReboarderPlugin';
 
 interface CustomSnoozeModalProps {
 	file: FileRecord;

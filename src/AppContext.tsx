@@ -1,6 +1,6 @@
 import { createContext, useContext } from 'react';
 import { App } from 'obsidian';
-import ReboarderPlugin from 'app/ReboarderPlugin';
+import ReboarderPlugin from 'src/ReboarderPlugin';
 
 
 export const useApp = (): App | undefined => {

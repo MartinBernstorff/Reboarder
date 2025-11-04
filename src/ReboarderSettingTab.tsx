@@ -1,4 +1,4 @@
-import ReboarderPlugin from 'app/ReboarderPlugin';
+import ReboarderPlugin from 'src/ReboarderPlugin';
 import { SNOOZE_INTERVAL_KEY, SNOOZE_EXPIRE_KEY } from 'Main';
 import { PluginSettingTab, App, Setting, TFile } from 'obsidian';
 

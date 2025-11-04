@@ -1,7 +1,7 @@
 import React from 'react';
 import { TFolder, TFile } from 'obsidian';
 import { useApp, usePlugin } from '../hooks';
-import { Board } from 'app/components/Board';
+import { Board } from 'src/components/Board';
 import { FileRecord } from './ReboarderPlugin';
 
 export const ReboarderView: React.FC<{

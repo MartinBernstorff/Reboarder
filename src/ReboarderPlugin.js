@@ -1,7 +1,7 @@
 import { __awaiter } from "tslib";
 import { Plugin, TFolder, TFile, Notice } from 'obsidian';
-import { DEFAULT_SETTINGS } from 'app/ReboarderSettings';
-import { ReboarderSettingTab } from 'app/ReboarderSettingTab';
+import { DEFAULT_SETTINGS } from 'src/ReboarderSettings';
+import { ReboarderSettingTab } from 'src/ReboarderSettingTab';
 import { queryCollectionOptions } from '@tanstack/query-db-collection';
 import { createCollection } from '@tanstack/react-db';
 import { ReboarderView, queryClient, REBOARDER_VIEW_TYPE, SNOOZE_INTERVAL_KEY, SNOOZE_EXPIRE_KEY } from '../Main';

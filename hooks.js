@@ -1,5 +1,5 @@
 import { useContext } from 'react';
-import { AppContext, PluginContext } from './app/AppContext';
+import { AppContext, PluginContext } from './src/AppContext';
 export const useApp = () => {
     const app = useContext(AppContext);
     if (!app) {

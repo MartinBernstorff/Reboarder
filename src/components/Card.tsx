@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { TFile, MarkdownRenderer, Component } from 'obsidian';
 import { CustomSnoozeModal } from './CustomSnoozeModal';
-import ReboarderPlugin, { FileRecord } from 'app/ReboarderPlugin';
+import ReboarderPlugin, { FileRecord } from 'src/ReboarderPlugin';
 import { useApp } from 'hooks';
 
 interface CardProps {
