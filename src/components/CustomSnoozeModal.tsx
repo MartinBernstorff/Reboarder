@@ -1,9 +1,9 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { TFile } from 'obsidian';
-import { usePlugin } from '../hooks';
+import { usePlugin } from 'hooks';
+import { FileRecord } from 'app/ReboarderPlugin';
 
 interface CustomSnoozeModalProps {
-	file: TFile;
+	file: FileRecord;
 	isOpen: boolean;
 	onClose: () => void;
 	onComplete: () => void;
@@ -13,7 +13,7 @@ export const CustomSnoozeModal: React.FC<CustomSnoozeModalProps> = ({
 	file, 
 	isOpen, 
 	onClose, 
-	onComplete 
+	onComplete
 }) => {
 	const plugin = usePlugin();
 	const inputRef = useRef<HTMLInputElement>(null);

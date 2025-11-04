@@ -4,8 +4,8 @@
 	"description": "A kanban-style board view for organizing notes by folder with snooze and unpin functionality.",
 	"main": "main.js",
 	"scripts": {
-		"build": "tsc -noEmit -skipLibCheck && node esbuild.config.mjs production",
-		"build:watch": "chokidar '*.json' '*.css' '*.ts' '*.tsx' 'components/*.tsx' -c 'npm run build'"
+		"build": "node esbuild.config.mjs production",
+		"build:watch": "chokidar '*.json' '*.css' '*.ts' '**/*.tsx' -c 'pnpm run build'"
 	},
 	"keywords": [],
 	"author": "",
@@ -21,9 +21,12 @@
 		"esbuild": "0.17.3",
 		"obsidian": "latest",
 		"tslib": "2.4.0",
-		"typescript": "4.7.4"
+		"typescript": "^5.0.0"
 	},
 	"dependencies": {
+		"@tanstack/query-db-collection": "^0.2.39",
+		"@tanstack/react-db": "^0.1.38",
+		"@tanstack/react-query": "^5.90.6",
 		"react": "^19.1.1",
 		"react-dom": "^19.1.1"
 	}

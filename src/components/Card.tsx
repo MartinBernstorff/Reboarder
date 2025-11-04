@@ -1,20 +1,18 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { TFile, MarkdownRenderer, Component } from 'obsidian';
-import ReboarderPlugin from '../main';
-import { useApp } from '../hooks';
 import { CustomSnoozeModal } from './CustomSnoozeModal';
+import ReboarderPlugin, { FileRecord } from 'app/ReboarderPlugin';
+import { useApp } from 'hooks';
 
 interface CardProps {
-	file: TFile;
+	file: FileRecord;
 	plugin: ReboarderPlugin;
-	onModify: () => void;
-	onSnooze: () => void;
 	onUnpin: () => void;
 	onOpen: () => void;
 	onDelete: () => void; // Optional delete handler
 }
 
-export const Card: React.FC<CardProps> = ({ file, plugin, onModify, onSnooze, onUnpin, onOpen, onDelete }) => {
+export const Card: React.FC<CardProps> = ({ file, plugin, onUnpin, onOpen, onDelete }) => {
 	const app = useApp();
 	const [showCustomSnooze, setShowCustomSnooze] = useState(false);
 	const previewRef = useRef<HTMLDivElement>(null);
@@ -69,7 +67,8 @@ export const Card: React.FC<CardProps> = ({ file, plugin, onModify, onSnooze, on
 			}
 		};
 
-		renderMarkdownPreview(file);
+		const tfile = app.vault.getAbstractFileByPath(file.path)! as TFile;
+		renderMarkdownPreview(tfile);
 
 		// Cleanup function
 		return () => {
@@ -88,7 +87,7 @@ export const Card: React.FC<CardProps> = ({ file, plugin, onModify, onSnooze, on
 		<>
 			<div className="reboarder-card" onClick={onOpen}>
 				<div className="reboarder-card-header">
-					<h4>{file.basename}</h4>
+					<h4>{file.name.replace(".md", "")}</h4>
 				</div>
 				<div className="reboarder-card-content">
 					<div ref={previewRef} className="markdown-preview-view" />
@@ -98,7 +97,6 @@ export const Card: React.FC<CardProps> = ({ file, plugin, onModify, onSnooze, on
 						onClick={(e) => {
 							e.stopPropagation();
 							onDelete();
-							onModify();
 						}}
 						className="reboarder-btn reboarder-btn-delete"
 					>
@@ -108,7 +106,6 @@ export const Card: React.FC<CardProps> = ({ file, plugin, onModify, onSnooze, on
 						onClick={(e) => {
 							e.stopPropagation();
 							onUnpin();
-							onModify();
 						}}
 						className="reboarder-btn reboarder-btn-unpin"
 					>
@@ -128,7 +125,7 @@ export const Card: React.FC<CardProps> = ({ file, plugin, onModify, onSnooze, on
 				file={file}
 				isOpen={showCustomSnooze}
 				onClose={() => setShowCustomSnooze(false)}
-				onComplete={onSnooze}
+				onComplete={() => console.log("Completed")}
 			/>
 		</>
 	);

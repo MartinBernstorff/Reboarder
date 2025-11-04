@@ -1,9 +1,12 @@
 {
   "compilerOptions": {
     "baseUrl": ".",
+    "paths": {
+      "app/*": ["src/*"]
+    },
     "inlineSourceMap": true,
     "inlineSources": true,
-    "module": "ESNext",
+    "module": "commonjs",
     "target": "ES6",
     "allowJs": true,
     "noImplicitAny": false,
@@ -21,8 +24,14 @@
       "ES7"
     ]
   },
+  "skipLibCheck": true,
   "include": [
-    "**/*.ts",
-    "**/*.tsx"
+    "src/**/*",
+	"main.tsx"
+  ],
+  "exclude": [
+	"dist",
+	"build",
+	"node_modules"
   ]
 }
