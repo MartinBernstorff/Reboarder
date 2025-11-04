@@ -1,0 +1,36 @@
+{
+  "version": "2.0.0",
+  "tasks": [
+    {
+      "label": "pnpm watch",
+      "type": "shell",
+      "command": "pnpm",
+      "args": [
+        "run",
+        "build:watch"
+      ],
+      "group": "build",
+      "isBackground": true,
+      "problemMatcher": []
+    },
+    {
+      "label": "terminal",
+      "type": "shell",
+      "command": "${env:SHELL}",
+      "group": "build",
+      "problemMatcher": []
+    },
+    {
+      "label": "start app",
+      "dependsOrder": "parallel",
+      "runOptions": {
+        "runOn": "folderOpen",
+      },
+      "dependsOn": [
+        "pnpm watch",
+        "terminal"
+      ],
+      "group": "build",
+    }
+  ]
+}
