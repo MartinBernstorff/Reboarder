@@ -6,9 +6,9 @@ import { createCollection } from '@tanstack/react-db';
 import { ReboarderView, queryClient, REBOARDER_VIEW_TYPE } from '../Main';
 import { z } from 'zod';
 import {
-    getSnoozeEntry,
-    setSnoozeEntry,
-    clearSnoozeEntry, isNoteSnoozed
+	getSnoozeEntry,
+	setSnoozeEntry,
+	clearSnoozeEntry, isNoteSnoozed
 } from './Snooze';
 
 const SnoozeInfoSchema = z.object({
