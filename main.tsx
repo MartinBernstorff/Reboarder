@@ -96,7 +96,7 @@ export class ReboarderView extends ItemView {
 
 		// Create a callback to open files in this leaf
 		const openFileInCurrentLeaf = (file: TFile) => {
-			this.plugin.openFileInLeaf(file, this.leaf);
+			this.app.workspace.getLeaf('tab').openFile(file);
 		};
 
 		// Re-render the React component with the current selectedBoardPath
