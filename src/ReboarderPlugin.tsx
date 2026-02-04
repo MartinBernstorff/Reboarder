@@ -8,13 +8,20 @@ import { z } from 'zod';
 import {
 	getSnoozeEntry,
 	setSnoozeEntry,
-	clearSnoozeEntry, isNoteSnoozed
+	clearSnoozeEntry,
+	isNoteSnoozed,
+	toISODateTime,
+	parseISODateTime
 } from './Snooze';
+
+const ExpireTimeSchema = z.iso.datetime().brand('ExpireTime');
+export type ExpireTime = z.infer<typeof ExpireTimeSchema>;
 
 const SnoozeInfoSchema = z.object({
 	interval: z.number().optional(),
-	expireTime: z.number().optional(),
+	expireTime: ExpireTimeSchema.optional(),
 });
+
 
 export const FileRecordSchema = z.object({
 	path: z.string(),
@@ -25,15 +32,15 @@ export const FileRecordSchema = z.object({
 
 export type FileRecord = z.infer<typeof FileRecordSchema>;
 
-export function isFileRecordSnoozed(record: FileRecord): boolean {
-	return !!(record.snoozeInfo.expireTime && Date.now() < record.snoozeInfo.expireTime);
+export function isSnoozed(record: FileRecord): boolean {
+	return !!(record.snoozeInfo.expireTime && Date.now() < parseISODateTime(record.snoozeInfo.expireTime).getTime());
 }
 
 export function getFileRecordRemainingHours(record: FileRecord): number | undefined {
-	if (!record.snoozeInfo.expireTime || !isFileRecordSnoozed(record)) {
+	if (!record.snoozeInfo.expireTime || !isSnoozed(record)) {
 		return undefined;
 	}
-	const remainingMs = record.snoozeInfo.expireTime - Date.now();
+	const remainingMs = parseISODateTime(record.snoozeInfo.expireTime).getTime() - Date.now();
 	return Math.ceil(remainingMs / (60 * 60 * 1000));
 }
 
@@ -265,15 +272,16 @@ export default class ReboarderPlugin extends Plugin {
 
 	snoozeNote(file: FileRecord, hours: number) {
 		// Update the file record in the collection with new snooze info
+		const expireDate = new Date(Date.now() + (hours * 60 * 60 * 1000));
 		this.fileCollection.update(file.name,
 			(draft) => {
 				draft.snoozeInfo.interval = hours
-				draft.snoozeInfo.expireTime = Date.now() + (hours * 60 * 60 * 1000)
+				draft.snoozeInfo.expireTime = toISODateTime(expireDate)
 			}
 		);
 	}
 
-	getSnoozeEntry(file: TFile): { interval: number; expire: number; } | null {
+	getSnoozeEntry(file: TFile): { interval: number; expire: ExpireTime; } | null {
 		return getSnoozeEntry(this.app, file);
 	}
 
@@ -300,6 +308,34 @@ export default class ReboarderPlugin extends Plugin {
 
 	async openFileInLeaf(file: TFile, leaf: WorkspaceLeaf) {
 		await leaf.openFile(file);
+	}
+
+	/**
+	 * Wake up notes with expired snoozes in a folder.
+	 * Notes are processed in order of earliest snooze expiration first,
+	 * so their updated mtimes reflect the order they should appear.
+	 */
+	async wakeExpiredSnoozes(folderPath: string) {
+		const files = this.app.vault.getFiles().filter(
+			f => f.path.startsWith(folderPath + '/') && f.extension === 'md'
+		);
+
+		const expiredSnoozes: { file: TFile; expireTime: ExpireTime }[] = [];
+
+		for (const file of files) {
+			const snoozeEntry = getSnoozeEntry(this.app, file);
+			if (snoozeEntry && parseISODateTime(snoozeEntry.expire).getTime() < Date.now()) {
+				expiredSnoozes.push({ file, expireTime: snoozeEntry.expire });
+			}
+		}
+
+		// Sort by expireTime ascending (earliest first)
+		expiredSnoozes.sort((a, b) => parseISODateTime(a.expireTime).getTime() - parseISODateTime(b.expireTime).getTime());
+
+		// Clear snooze for each note sequentially
+		for (const { file } of expiredSnoozes) {
+			await clearSnoozeEntry(this.app, file);
+		}
 	}
 
 	onunload() {

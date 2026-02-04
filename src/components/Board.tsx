@@ -1,8 +1,8 @@
-import React from 'react';
+import React, { useEffect, useRef } from 'react';
 import { TFolder } from 'obsidian';
 import { Card } from './Card';
 import { useLiveQuery } from '@tanstack/react-db';
-import ReboarderPlugin, { FileRecord, isFileRecordSnoozed } from 'src/ReboarderPlugin';
+import ReboarderPlugin, { FileRecord, isSnoozed } from 'src/ReboarderPlugin';
 
 interface BoardProps {
 	folder: TFolder;
@@ -15,6 +15,16 @@ export const Board: React.FC<BoardProps> = ({
 	plugin,
 	onOpenNote
 }) => {
+	const wokenRef = useRef<string | null>(null);
+
+	useEffect(() => {
+		// Only wake expired snoozes once per folder
+		if (wokenRef.current !== folder.path) {
+			wokenRef.current = folder.path;
+			plugin.wakeExpiredSnoozes(folder.path);
+		}
+	}, [folder.path, plugin]);
+
 	const files = useLiveQuery((q) => q.from({ boards: plugin.fileCollection }))
 		.data
 
@@ -22,7 +32,7 @@ export const Board: React.FC<BoardProps> = ({
 
 	const boardFiles = files
 		.filter(it => it.path.contains(folder.path + "/"))
-		.filter(it => !isFileRecordSnoozed(it))
+		.filter(it => !isSnoozed(it))
 		.sort((a, b) => b.mtime - a.mtime);
 
 

@@ -10,10 +10,11 @@ import { Root, createRoot } from 'react-dom/client';
 import { ReboarderView as ReactReboarderView } from 'src/View';
 import { AppContext, PluginContext } from 'src/AppContext';
 import { QueryClient } from '@tanstack/react-query';
-import ReboarderPlugin from 'src/ReboarderPlugin';
+import ReboarderPlugin, { type ExpireTime } from 'src/ReboarderPlugin';
 import {
 	SNOOZE_INTERVAL_KEY,
 	SNOOZE_EXPIRE_KEY,
+	parseISODateTime,
 } from 'src/Snooze';
 import type {
 	LegacySnoozeData,
@@ -37,8 +38,8 @@ export const queryClient = new QueryClient({
 });
 
 // Re-export snooze-related types and constants
-export type { LegacySnoozeData, FrontmatterMap };
-export { SNOOZE_INTERVAL_KEY, SNOOZE_EXPIRE_KEY };
+export type { LegacySnoozeData, FrontmatterMap, ExpireTime };
+export { SNOOZE_INTERVAL_KEY, SNOOZE_EXPIRE_KEY, parseISODateTime };
 
 export const REBOARDER_VIEW_TYPE = 'reboarder-view';
 
