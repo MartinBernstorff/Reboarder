@@ -3,7 +3,7 @@ import { ReboarderSettings, DEFAULT_SETTINGS } from 'src/ReboarderSettings';
 import { ReboarderSettingTab } from 'src/ReboarderSettingTab';
 import { queryCollectionOptions } from '@tanstack/query-db-collection';
 import { createCollection } from '@tanstack/react-db';
-import { ReboarderView, queryClient, REBOARDER_VIEW_TYPE } from '../Main';
+import { ReboarderView, queryClient, REBOARDER_VIEW_TYPE } from '../main';
 import { z } from 'zod';
 import {
 	getSnoozeEntry,

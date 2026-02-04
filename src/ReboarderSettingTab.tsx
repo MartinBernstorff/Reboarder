@@ -1,5 +1,5 @@
 import ReboarderPlugin from 'src/ReboarderPlugin';
-import { SNOOZE_INTERVAL_KEY, SNOOZE_EXPIRE_KEY, parseISODateTime, type ExpireTime } from 'Main';
+import { SNOOZE_INTERVAL_KEY, SNOOZE_EXPIRE_KEY, parseISODateTime, type ExpireTime } from 'main';
 import { PluginSettingTab, App, Setting, TFile } from 'obsidian';
 
 export class ReboarderSettingTab extends PluginSettingTab {
