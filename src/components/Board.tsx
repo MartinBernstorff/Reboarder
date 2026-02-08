@@ -4,7 +4,8 @@ import { Card } from './Card';
 import { useLiveQuery } from '@tanstack/react-db';
 import ReboarderPlugin from 'src/ReboarderPlugin';
 import { type FileRecord, isSnoozed } from 'src/model/FileRecord';
-import { type FilePath, type FileName, type EpochMs } from 'src/model/brands';
+import { type FilePath } from 'src/model/brands';
+import { Notes } from 'src/Notes';
 
 interface BoardProps {
 	folder: TFolder;
@@ -29,40 +30,21 @@ export const Board: React.FC<BoardProps> = ({
 	const files = useLiveQuery((q) => q.from({ boards: plugin.fileCollection }))
 		.data
 
-	const fileNames = files.map(f => f.name);
-
 	const boardFiles = files
 		.filter(it => it.path.contains(folder.path + "/"))
 		.filter(it => !isSnoozed(it))
 		.sort((a, b) => b.mtime - a.mtime);
 
 
-	const createNewNote = async () => {
-		try {
-			const baseName = 'New Note';
-			let fileName = `${baseName}.md`;
-			let idx = 1;
-			while (fileNames.contains(fileName)) {
-				fileName = `${baseName} ${idx}.md`;
-				idx++;
-			}
-
-			await plugin.fileCollection.insert({
-				name: fileName as FileName,
-				mtime: Date.now() as EpochMs,
-				path: (folder.path + '/' + fileName) as FilePath,
-				snoozeInfo: { expireTime: undefined }
-			});
-		} catch (e) {
-			console.error('Failed to create note', e);
-		}
+	const handleNewClick = async () => {
+		Notes.createNewNote(folder, plugin.fileCollection);
 	};
 
 	return (
 		<div className="reboarder-board">
 			<div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '8px', marginBottom: '8px' }}>
 				<h3 className="reboarder-board-title" style={{ marginBottom: 0 }}>{folder.name}</h3>
-				<button className="reboarder-new-note-btn" onClick={createNewNote} aria-label="Add new note">+ New</button>
+				<button className="reboarder-new-note-btn" onClick={handleNewClick} aria-label="Add new note">+ New</button>
 			</div>
 			<div className="reboarder-cards-container">
 				{boardFiles.length === 0 ? (

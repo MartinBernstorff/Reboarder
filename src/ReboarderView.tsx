@@ -1,5 +1,4 @@
 import {
-	TFile,
 	TFolder,
 	WorkspaceLeaf,
 	ItemView,
@@ -11,6 +10,7 @@ import { ReboarderView as ReactReboarderView } from 'src/View';
 import { AppContext, PluginContext } from 'src/hooks';
 import type ReboarderPlugin from 'src/ReboarderPlugin';
 import { type FilePath } from 'src/model/brands';
+import { Workspace } from './Workspace';
 
 export const REBOARDER_VIEW_TYPE = 'reboarder-view';
 
@@ -63,19 +63,15 @@ export class ReboarderView extends ItemView {
 	renderReactComponent() {
 		if (!this.root) return;
 
-		const openAndFocusFile = async (file: TFile) => {
-			const leaf = this.app.workspace.getLeaf('tab');
-			await leaf.openFile(file);
-			this.app.workspace.setActiveLeaf(leaf, { focus: true });
-		};
-
 		this.root.render(
 			<StrictMode>
 				<AppContext.Provider value={this.app}>
 					<PluginContext.Provider value={this.plugin}>
 						<ReactReboarderView
 							selectedBoardPath={this.selectedBoardPath}
-							onOpenFile={openAndFocusFile}
+							onOpenFile={
+								(file) => Workspace.openAndFocusFile(file, this.app)
+							}
 						/>
 					</PluginContext.Provider>
 				</AppContext.Provider>
