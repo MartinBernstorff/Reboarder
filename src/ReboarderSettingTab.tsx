@@ -1,5 +1,5 @@
 import ReboarderPlugin from 'src/ReboarderPlugin';
-import { SNOOZE_INTERVAL_KEY, SNOOZE_EXPIRE_KEY, parseISODateTime, type ExpireTime } from 'src/snooze/snooze';
+import { SNOOZE_INTERVAL_KEY, SNOOZE_EXPIRE_KEY, parseISODateTime, type ExpireTime, type SnoozeIntervalHours } from 'src/snooze/snooze';
 import { PluginSettingTab, App, Setting, TFile } from 'obsidian';
 
 export class ReboarderSettingTab extends PluginSettingTab {
@@ -56,14 +56,14 @@ export class ReboarderSettingTab extends PluginSettingTab {
 		const refreshSnoozeList = () => {
 			snoozeContainer.empty();
 			const files = this.app.vault.getMarkdownFiles();
-			const entries: { file: TFile; interval: number; expire: ExpireTime; }[] = [];
+			const entries: { file: TFile; interval: SnoozeIntervalHours; expire: ExpireTime; }[] = [];
 			files.forEach(f => {
 				const fm = this.app.metadataCache.getFileCache(f)?.frontmatter;
 				if (!fm) return;
 				const interval = fm[SNOOZE_INTERVAL_KEY];
 				const expire = fm[SNOOZE_EXPIRE_KEY];
 				if (typeof interval === 'number' && typeof expire === 'string') {
-					entries.push({ file: f, interval, expire: expire as ExpireTime });
+					entries.push({ file: f, interval: interval as SnoozeIntervalHours, expire: expire as ExpireTime });
 				}
 			});
 			if (entries.length === 0) {

@@ -1,10 +1,9 @@
 import { App, TFile, Notice } from 'obsidian';
 import { getFrontmatter, editFrontmatter } from './frontmatter';
-import { z } from 'zod';
+import { type ExpireTime, type SnoozeIntervalHours } from 'src/model/brands';
 
-// Branded type for expire times
-const ExpireTimeSchema = z.iso.datetime().brand('ExpireTime');
-export type ExpireTime = z.infer<typeof ExpireTimeSchema>;
+// Re-export branded types for consumers that imported from here
+export type { ExpireTime, SnoozeIntervalHours };
 
 // Frontmatter keys for snooze data
 export const SNOOZE_INTERVAL_KEY = 'reboarder_snooze_interval';
@@ -32,7 +31,7 @@ export function parseISODateTime(str: ExpireTime): Date {
 /**
  * Return snooze entry from a note frontmatter, if present and valid.
  */
-export function getSnoozeEntry(app: App, file: TFile): { interval: number; expire: ExpireTime } | null {
+export function getSnoozeEntry(app: App, file: TFile): { interval: SnoozeIntervalHours; expire: ExpireTime } | null {
 	const fm = getFrontmatter(app, file);
 	if (!fm) return null;
 
@@ -40,7 +39,7 @@ export function getSnoozeEntry(app: App, file: TFile): { interval: number; expir
 	const expire = fm[SNOOZE_EXPIRE_KEY];
 
 	if (typeof interval === 'number' && typeof expire === 'string') {
-		return { interval, expire: expire as ExpireTime };
+		return { interval: interval as SnoozeIntervalHours, expire: expire as ExpireTime };
 	}
 	return null;
 }
@@ -48,7 +47,7 @@ export function getSnoozeEntry(app: App, file: TFile): { interval: number; expir
 /**
  * Set snooze entry in a note's frontmatter.
  */
-export async function setSnoozeEntry(app: App, file: TFile, interval: number, expire: ExpireTime) {
+export async function setSnoozeEntry(app: App, file: TFile, interval: SnoozeIntervalHours, expire: ExpireTime) {
 	await editFrontmatter(app, file, map => {
 		map[SNOOZE_INTERVAL_KEY] = interval;
 		map[SNOOZE_EXPIRE_KEY] = expire;
@@ -79,8 +78,8 @@ export function isNoteSnoozed(app: App, file: TFile): boolean {
 export async function snoozeNote(
 	app: App,
 	file: TFile,
-	hours: number,
-	onUpdate?: (interval: number, expireTime: ExpireTime) => void
+	hours: SnoozeIntervalHours,
+	onUpdate?: (interval: SnoozeIntervalHours, expireTime: ExpireTime) => void
 ) {
 	const expireDate = new Date(Date.now() + (hours * 60 * 60 * 1000));
 	const expireTime = toISODateTime(expireDate);

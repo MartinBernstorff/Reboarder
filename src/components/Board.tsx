@@ -4,6 +4,7 @@ import { Card } from './Card';
 import { useLiveQuery } from '@tanstack/react-db';
 import ReboarderPlugin from 'src/ReboarderPlugin';
 import { type FileRecord, isSnoozed } from 'src/model/FileRecord';
+import { type FilePath, type FileName, type EpochMs } from 'src/model/brands';
 
 interface BoardProps {
 	folder: TFolder;
@@ -21,7 +22,7 @@ export const Board: React.FC<BoardProps> = ({
 	useEffect(() => {
 		if (wokenRef.current !== folder.path) {
 			wokenRef.current = folder.path;
-			plugin.wakeExpiredSnoozes(folder.path);
+			plugin.wakeExpiredSnoozes(folder.path as FilePath);
 		}
 	}, [folder.path, plugin]);
 
@@ -47,9 +48,9 @@ export const Board: React.FC<BoardProps> = ({
 			}
 
 			await plugin.fileCollection.insert({
-				name: fileName,
-				mtime: Date.now(),
-				path: folder.path + '/' + fileName,
+				name: fileName as FileName,
+				mtime: Date.now() as EpochMs,
+				path: (folder.path + '/' + fileName) as FilePath,
 				snoozeInfo: { interval: undefined, expireTime: undefined }
 			});
 		} catch (e) {
@@ -73,7 +74,7 @@ export const Board: React.FC<BoardProps> = ({
 							file={fileRecord}
 							plugin={plugin}
 							onUnpin={async () => {
-								const newPath = fileRecord.name;
+								const newPath = fileRecord.name as string as FilePath;
 								plugin.fileCollection.update(fileRecord.name, (draft) => {
 									draft.path = newPath;
 								});

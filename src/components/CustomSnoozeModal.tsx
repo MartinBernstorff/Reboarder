@@ -1,6 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { usePlugin } from 'src/hooks';
 import { type FileRecord } from 'src/model/FileRecord';
+import { type SnoozeIntervalHours } from 'src/model/brands';
 
 interface CustomSnoozeModalProps {
 	file: FileRecord;
@@ -43,7 +44,7 @@ export const CustomSnoozeModal: React.FC<CustomSnoozeModalProps> = ({
 	}, [isOpen, days]);
 
 	const handleSnooze = () => {
-		const hours = days * 24;
+		const hours = (days * 24) as SnoozeIntervalHours;
 		plugin.snoozeNote(file, hours);
 		onClose();
 	};

@@ -1,15 +1,17 @@
 import { z } from 'zod';
-import { type ExpireTime, parseISODateTime } from 'src/snooze/snooze';
+import { FilePathSchema, FileNameSchema, EpochMsSchema, SnoozeIntervalHoursSchema, ExpireTimeSchema } from 'src/model/brands';
+import { type ExpireTime } from 'src/model/brands';
+import { parseISODateTime } from 'src/snooze/snooze';
 
 const SnoozeInfoSchema = z.object({
-	interval: z.number().optional(),
-	expireTime: z.iso.datetime().brand('ExpireTime').optional(),
+	interval: SnoozeIntervalHoursSchema.optional(),
+	expireTime: ExpireTimeSchema.optional(),
 });
 
 export const FileRecordSchema = z.object({
-	path: z.string(),
-	name: z.string(),
-	mtime: z.number(),
+	path: FilePathSchema,
+	name: FileNameSchema,
+	mtime: EpochMsSchema,
 	snoozeInfo: SnoozeInfoSchema,
 });
 

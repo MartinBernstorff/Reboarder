@@ -3,9 +3,10 @@ import { TFolder, TFile } from 'obsidian';
 import { useApp, usePlugin } from 'src/hooks';
 import { Board } from 'src/components/Board';
 import { type FileRecord } from 'src/model/FileRecord';
+import { type FilePath } from 'src/model/brands';
 
 export const ReboarderView: React.FC<{
-	selectedBoardPath: string;
+	selectedBoardPath: FilePath;
 	onOpenFile?: (file: TFile) => void;
 }> = ({ selectedBoardPath, onOpenFile }) => {
 	const app = useApp();

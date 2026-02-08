@@ -10,11 +10,12 @@ import { Root, createRoot } from 'react-dom/client';
 import { ReboarderView as ReactReboarderView } from 'src/View';
 import { AppContext, PluginContext } from 'src/hooks';
 import type ReboarderPlugin from 'src/ReboarderPlugin';
+import { type FilePath } from 'src/model/brands';
 
 export const REBOARDER_VIEW_TYPE = 'reboarder-view';
 
 export class ReboarderView extends ItemView {
-	selectedBoardPath = '';
+	selectedBoardPath = '' as FilePath;
 	plugin: ReboarderPlugin;
 	root: Root | null = null;
 
@@ -46,7 +47,7 @@ export class ReboarderView extends ItemView {
 	}
 
 	async setState(state: unknown, result: ViewStateResult) {
-		const typedState = state as { selectedBoardPath?: string };
+		const typedState = state as { selectedBoardPath?: FilePath };
 		if (typedState && typedState.selectedBoardPath) {
 			this.selectedBoardPath = typedState.selectedBoardPath;
 			console.log('ReboarderView setState: selectedBoardPath set to', this.selectedBoardPath);

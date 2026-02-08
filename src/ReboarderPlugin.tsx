@@ -5,6 +5,7 @@ import { ReboarderView, REBOARDER_VIEW_TYPE } from 'src/ReboarderView';
 import { queryClient } from 'src/model/queryClient';
 import { createFileCollection } from 'src/model/fileCollection';
 import { type FileRecord } from 'src/model/FileRecord';
+import { type FilePath, type FileName, type EpochMs, type SnoozeIntervalHours } from 'src/model/brands';
 import {
 	getSnoozeEntry,
 	clearSnoozeEntry,
@@ -118,7 +119,7 @@ export default class ReboarderPlugin extends Plugin {
 					id: commandId,
 					name: `Open board: ${folder.name}`,
 					callback: () => {
-						this.activateView(folder.path);
+						this.activateView(folder.path as FilePath);
 					}
 				});
 
@@ -127,7 +128,7 @@ export default class ReboarderPlugin extends Plugin {
 		});
 	}
 
-	async activateView(selectedBoardPath: string) {
+	async activateView(selectedBoardPath: FilePath) {
 		const { workspace } = this.app;
 
 		console.log('activateView called with selectedBoardPath:', selectedBoardPath);
@@ -152,7 +153,7 @@ export default class ReboarderPlugin extends Plugin {
 		this.registerBoardCommands();
 	}
 
-	snoozeNote(file: FileRecord, hours: number) {
+	snoozeNote(file: FileRecord, hours: SnoozeIntervalHours) {
 		const expireDate = new Date(Date.now() + (hours * 60 * 60 * 1000));
 		this.fileCollection.update(file.name,
 			(draft) => {
@@ -162,7 +163,7 @@ export default class ReboarderPlugin extends Plugin {
 		);
 	}
 
-	getSnoozeEntry(file: TFile): { interval: number; expire: ExpireTime } | null {
+	getSnoozeEntry(file: TFile): { interval: SnoozeIntervalHours; expire: ExpireTime } | null {
 		return getSnoozeEntry(this.app, file);
 	}
 
@@ -174,9 +175,9 @@ export default class ReboarderPlugin extends Plugin {
 		const snoozeEntry = getSnoozeEntry(this.app, file);
 
 		return {
-			path: file.path,
-			name: file.name,
-			mtime: file.stat.mtime,
+			path: file.path as FilePath,
+			name: file.name as FileName,
+			mtime: file.stat.mtime as EpochMs,
 			snoozeInfo: {
 				interval: snoozeEntry?.interval,
 				expireTime: snoozeEntry?.expire,
@@ -188,7 +189,7 @@ export default class ReboarderPlugin extends Plugin {
 		await leaf.openFile(file);
 	}
 
-	async wakeExpiredSnoozes(folderPath: string) {
+	async wakeExpiredSnoozes(folderPath: FilePath) {
 		const files = this.app.vault.getFiles().filter(
 			f => f.path.startsWith(folderPath + '/') && f.extension === 'md'
 		);
