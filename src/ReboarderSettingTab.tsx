@@ -1,5 +1,5 @@
 import ReboarderPlugin from 'src/ReboarderPlugin';
-import { SNOOZE_INTERVAL_KEY, SNOOZE_EXPIRE_KEY, parseISODateTime, type ExpireTime } from 'main';
+import { SNOOZE_INTERVAL_KEY, SNOOZE_EXPIRE_KEY, parseISODateTime, type ExpireTime } from 'src/snooze/snooze';
 import { PluginSettingTab, App, Setting, TFile } from 'obsidian';
 
 export class ReboarderSettingTab extends PluginSettingTab {
@@ -81,7 +81,6 @@ export class ReboarderSettingTab extends PluginSettingTab {
 				row.createEl('div', { text: status, cls: `reboarder-snooze-status status-${status}` });
 				const clearBtn = row.createEl('button', { text: 'Clear', cls: 'reboarder-snooze-clear' });
 				clearBtn.addEventListener('click', async () => {
-					// Update the file record in the collection to clear snooze info
 					await this.plugin.fileCollection.update(file.name, (draft) => {
 						draft.snoozeInfo = {
 							interval: undefined,
@@ -100,7 +99,6 @@ export class ReboarderSettingTab extends PluginSettingTab {
 			for (const f of files) {
 				const entry = this.plugin.getSnoozeEntry(f);
 				if (entry && parseISODateTime(entry.expire).getTime() <= now) {
-					// Update the file record in the collection to clear snooze info
 					await this.plugin.fileCollection.update(f.basename, (draft) => {
 						draft.snoozeInfo = {
 							interval: undefined,

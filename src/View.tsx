@@ -1,11 +1,11 @@
 import React from 'react';
 import { TFolder, TFile } from 'obsidian';
-import { useApp, usePlugin } from '../hooks';
+import { useApp, usePlugin } from 'src/hooks';
 import { Board } from 'src/components/Board';
-import { FileRecord } from './ReboarderPlugin';
+import { type FileRecord } from 'src/model/FileRecord';
 
 export const ReboarderView: React.FC<{
-	selectedBoardPath: string; // Must always be a specific board
+	selectedBoardPath: string;
 	onOpenFile?: (file: TFile) => void;
 }> = ({ selectedBoardPath, onOpenFile }) => {
 	const app = useApp();
@@ -28,7 +28,6 @@ export const ReboarderView: React.FC<{
 		}
 	};
 
-	// Don't render if no board path is set
 	if (!selectedBoardPath) {
 		return (
 			<div className="reboarder-container">
@@ -37,7 +36,6 @@ export const ReboarderView: React.FC<{
 		);
 	}
 
-	// Always show the specific board
 	const folder = app.vault.getAbstractFileByPath(selectedBoardPath);
 	if (folder instanceof TFolder) {
 		return (

@@ -1,0 +1,28 @@
+import { z } from 'zod';
+import { type ExpireTime, parseISODateTime } from 'src/snooze/snooze';
+
+const SnoozeInfoSchema = z.object({
+	interval: z.number().optional(),
+	expireTime: z.iso.datetime().brand('ExpireTime').optional(),
+});
+
+export const FileRecordSchema = z.object({
+	path: z.string(),
+	name: z.string(),
+	mtime: z.number(),
+	snoozeInfo: SnoozeInfoSchema,
+});
+
+export type FileRecord = z.infer<typeof FileRecordSchema>;
+
+export function isSnoozed(record: FileRecord): boolean {
+	return !!(record.snoozeInfo.expireTime && Date.now() < parseISODateTime(record.snoozeInfo.expireTime).getTime());
+}
+
+export function getFileRecordRemainingHours(record: FileRecord): number | undefined {
+	if (!record.snoozeInfo.expireTime || !isSnoozed(record)) {
+		return undefined;
+	}
+	const remainingMs = parseISODateTime(record.snoozeInfo.expireTime).getTime() - Date.now();
+	return Math.ceil(remainingMs / (60 * 60 * 1000));
+}

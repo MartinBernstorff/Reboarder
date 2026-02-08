@@ -1,15 +1,16 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { TFile, MarkdownRenderer, Component } from 'obsidian';
 import { CustomSnoozeModal } from './CustomSnoozeModal';
-import ReboarderPlugin, { FileRecord } from 'src/ReboarderPlugin';
-import { useApp } from 'hooks';
+import ReboarderPlugin from 'src/ReboarderPlugin';
+import { type FileRecord } from 'src/model/FileRecord';
+import { useApp } from 'src/hooks';
 
 interface CardProps {
 	file: FileRecord;
 	plugin: ReboarderPlugin;
 	onUnpin: () => void;
 	onOpen: () => void;
-	onDelete: () => void; // Optional delete handler
+	onDelete: () => void;
 }
 
 export const Card: React.FC<CardProps> = ({ file, plugin, onUnpin, onOpen, onDelete }) => {
@@ -23,20 +24,17 @@ export const Card: React.FC<CardProps> = ({ file, plugin, onUnpin, onOpen, onDel
 		const renderMarkdownPreview = async (file: TFile): Promise<void> => {
 			try {
 				const content = await app.vault.read(file);
-				// Truncate content to the specified length for preview
 				const maxLength = plugin.settings.cardPreviewLength;
 				let truncatedContent = content;
 
 				const truncationSymbol = ' [...]';
 
 				if (content.length > maxLength) {
-					// Find the last newline before the character limit
 					let truncateAt = maxLength;
 					while (truncateAt > 0 && content[truncateAt] !== '\n') {
 						truncateAt--;
 					}
 
-					// If we found a newline, truncate there; otherwise fall back to character limit
 					if (truncateAt > 0) {
 						truncatedContent = content.substring(0, truncateAt).trim() + truncationSymbol;
 					} else {
@@ -44,14 +42,11 @@ export const Card: React.FC<CardProps> = ({ file, plugin, onUnpin, onOpen, onDel
 					}
 				}
 
-				// Create a temporary container for rendering
 				if (previewRef.current) {
 					previewRef.current.empty();
 
-					// Create a temporary component for the markdown rendering
 					component = new Component();
 
-					// Render the markdown content
 					await MarkdownRenderer.renderMarkdown(
 						truncatedContent,
 						previewRef.current,
@@ -74,7 +69,6 @@ export const Card: React.FC<CardProps> = ({ file, plugin, onUnpin, onOpen, onDel
 			renderMarkdownPreview(tfile);
 		}
 
-		// Cleanup function
 		return () => {
 			if (component) {
 				component.unload();

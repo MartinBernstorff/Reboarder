@@ -2,7 +2,8 @@ import React, { useEffect, useRef } from 'react';
 import { TFolder } from 'obsidian';
 import { Card } from './Card';
 import { useLiveQuery } from '@tanstack/react-db';
-import ReboarderPlugin, { FileRecord, isSnoozed } from 'src/ReboarderPlugin';
+import ReboarderPlugin from 'src/ReboarderPlugin';
+import { type FileRecord, isSnoozed } from 'src/model/FileRecord';
 
 interface BoardProps {
 	folder: TFolder;
@@ -18,7 +19,6 @@ export const Board: React.FC<BoardProps> = ({
 	const wokenRef = useRef<string | null>(null);
 
 	useEffect(() => {
-		// Only wake expired snoozes once per folder
 		if (wokenRef.current !== folder.path) {
 			wokenRef.current = folder.path;
 			plugin.wakeExpiredSnoozes(folder.path);
@@ -38,7 +38,6 @@ export const Board: React.FC<BoardProps> = ({
 
 	const createNewNote = async () => {
 		try {
-			// Generate a unique file name
 			const baseName = 'New Note';
 			let fileName = `${baseName}.md`;
 			let idx = 1;

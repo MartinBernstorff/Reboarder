@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { usePlugin } from 'hooks';
-import { FileRecord } from 'src/ReboarderPlugin';
+import { usePlugin } from 'src/hooks';
+import { type FileRecord } from 'src/model/FileRecord';
 
 interface CustomSnoozeModalProps {
 	file: FileRecord;
@@ -8,14 +8,13 @@ interface CustomSnoozeModalProps {
 	onClose: () => void;
 }
 
-export const CustomSnoozeModal: React.FC<CustomSnoozeModalProps> = ({ 
-	file, 
-	isOpen, 
-	onClose, 
+export const CustomSnoozeModal: React.FC<CustomSnoozeModalProps> = ({
+	file,
+	isOpen,
+	onClose,
 }) => {
 	const plugin = usePlugin();
 	const inputRef = useRef<HTMLInputElement>(null);
-	// Store days but initialize from default hours (convert hours -> days, rounding up)
 	const defaultDays = Math.max(1, Math.ceil(plugin.settings.defaultSnoozeHours / 24));
 	const [days, setDays] = useState(defaultDays);
 
@@ -28,13 +27,13 @@ export const CustomSnoozeModal: React.FC<CustomSnoozeModalProps> = ({
 	useEffect(() => {
 		const handleKeyDown = (e: KeyboardEvent) => {
 			if (!isOpen) return;
-			
+
 			if (e.key === 'Enter') {
 				e.preventDefault();
 				handleSnooze();
 			} else if (e.key === 'Escape') {
 				e.preventDefault();
-				setDays(defaultDays); // Reset to default on cancel
+				setDays(defaultDays);
 				onClose();
 			}
 		};
@@ -44,7 +43,7 @@ export const CustomSnoozeModal: React.FC<CustomSnoozeModalProps> = ({
 	}, [isOpen, days]);
 
 	const handleSnooze = () => {
-		const hours = days * 24; // convert days to hours
+		const hours = days * 24;
 		plugin.snoozeNote(file, hours);
 		onClose();
 	};
