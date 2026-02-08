@@ -7,7 +7,7 @@ import { type FilePath } from 'src/model/brands';
 
 export const ReboarderView: React.FC<{
 	selectedBoardPath: FilePath;
-	onOpenFile?: (file: TFile) => void;
+	onOpenFile: (file: TFile) => void;
 }> = ({ selectedBoardPath, onOpenFile }) => {
 	const app = useApp();
 	const plugin = usePlugin();

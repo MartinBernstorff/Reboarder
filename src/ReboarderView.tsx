@@ -63,8 +63,10 @@ export class ReboarderView extends ItemView {
 	renderReactComponent() {
 		if (!this.root) return;
 
-		const openFileInCurrentLeaf = (file: TFile) => {
-			this.app.workspace.getLeaf('tab').openFile(file);
+		const openAndFocusFile = async (file: TFile) => {
+			const leaf = this.app.workspace.getLeaf('tab');
+			await leaf.openFile(file);
+			this.app.workspace.setActiveLeaf(leaf, { focus: true });
 		};
 
 		this.root.render(
@@ -73,7 +75,7 @@ export class ReboarderView extends ItemView {
 					<PluginContext.Provider value={this.plugin}>
 						<ReactReboarderView
 							selectedBoardPath={this.selectedBoardPath}
-							onOpenFile={openFileInCurrentLeaf}
+							onOpenFile={openAndFocusFile}
 						/>
 					</PluginContext.Provider>
 				</AppContext.Provider>
