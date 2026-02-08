@@ -3,7 +3,7 @@ import { FileNameSchema, EpochMsSchema, FilePathSchema } from "./model/brands";
 import { createFileCollection } from "./model/fileCollection";
 
 export class Notes {
-    static createNewNote(
+    static createNew(
         folder: TFolder,
         fileCollection: ReturnType<typeof createFileCollection>
     ) {

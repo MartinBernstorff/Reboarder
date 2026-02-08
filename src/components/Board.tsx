@@ -37,7 +37,7 @@ export const Board: React.FC<BoardProps> = ({
 
 
 	const handleNewClick = async () => {
-		Notes.createNewNote(folder, plugin.fileCollection);
+		Notes.createNew(folder, plugin.fileCollection);
 	};
 
 	return (
