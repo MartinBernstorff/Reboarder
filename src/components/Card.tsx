@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { TFile, MarkdownRenderer, Component } from 'obsidian';
+import { X, AlarmClock } from 'lucide-react';
 import { CustomSnoozeModal } from './CustomSnoozeModal';
 import ReboarderPlugin from 'src/ReboarderPlugin';
 import { type FileRecord } from 'src/model/FileRecord';
@@ -10,10 +11,9 @@ interface CardProps {
 	plugin: ReboarderPlugin;
 	onUnpin: () => void;
 	onOpen: () => void;
-	onDelete: () => void;
 }
 
-export const Card: React.FC<CardProps> = ({ file, plugin, onUnpin, onOpen, onDelete }) => {
+export const Card: React.FC<CardProps> = ({ file, plugin, onUnpin, onOpen }) => {
 	const app = useApp();
 	const [showCustomSnooze, setShowCustomSnooze] = useState(false);
 	const previewRef = useRef<HTMLDivElement>(null);
@@ -84,39 +84,29 @@ export const Card: React.FC<CardProps> = ({ file, plugin, onUnpin, onOpen, onDel
 	return (
 		<>
 			<div className="reboarder-card" onClick={onOpen}>
+				<button
+					onClick={(e) => {
+						e.stopPropagation();
+						onUnpin();
+					}}
+					className="reboarder-fab reboarder-fab-unpin"
+					title="Unpin"
+				>
+					<X size={14} />
+				</button>
 				<div className="reboarder-card-header">
 					<h4>{file.name.replace(".md", "")}</h4>
 				</div>
 				<div className="reboarder-card-content">
 					<div ref={previewRef} className="markdown-preview-view" />
 				</div>
-				<div className="reboarder-card-actions">
-					<button
-						onClick={(e) => {
-							e.stopPropagation();
-							onDelete();
-						}}
-						className="reboarder-btn reboarder-btn-delete"
-					>
-						Delete
-					</button>
-					<button
-						onClick={(e) => {
-							e.stopPropagation();
-							onUnpin();
-						}}
-						className="reboarder-btn reboarder-btn-unpin"
-					>
-						Unpin
-					</button>
-					<button
-						onClick={handleSnoozeClick}
-						className="reboarder-btn"
-						title="Set a custom snooze duration (in days)"
-					>
-						Snooze
-					</button>
-				</div>
+				<button
+					onClick={handleSnoozeClick}
+					className="reboarder-fab reboarder-fab-snooze"
+					title="Snooze"
+				>
+					<AlarmClock size={14} />
+				</button>
 			</div>
 
 			<CustomSnoozeModal
