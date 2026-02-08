@@ -41,7 +41,6 @@ export function createFileCollection(
 
 				// Update snooze information if it has changed
 				const snoozeChanged =
-					original.snoozeInfo.interval !== modified.snoozeInfo.interval ||
 					original.snoozeInfo.expireTime !== modified.snoozeInfo.expireTime;
 
 				if (snoozeChanged) {
@@ -53,9 +52,9 @@ export function createFileCollection(
 						return;
 					}
 
-					if (modified.snoozeInfo.interval && modified.snoozeInfo.expireTime) {
+					if (modified.snoozeInfo.expireTime) {
 						// Set new snooze information
-						await setSnoozeEntry(app, targetFile, modified.snoozeInfo.interval, modified.snoozeInfo.expireTime);
+						await setSnoozeEntry(app, targetFile, modified.snoozeInfo.expireTime);
 					} else {
 						// Clear snooze information
 						await clearSnoozeEntry(app, targetFile);
@@ -65,12 +64,13 @@ export function createFileCollection(
 			onInsert: async ({ transaction }) => {
 				const newItem = transaction.mutations[0].modified;
 				await app.vault.create(newItem.path, "");
-				await setSnoozeEntry(
-					app,
-					app.vault.getAbstractFileByPath(newItem.path) as TFile,
-					newItem.snoozeInfo.interval!,
-					newItem.snoozeInfo.expireTime!
-				);
+				if (newItem.snoozeInfo.expireTime) {
+					await setSnoozeEntry(
+						app,
+						app.vault.getAbstractFileByPath(newItem.path) as TFile,
+						newItem.snoozeInfo.expireTime
+					);
+				}
 			},
 			onDelete: async ({ transaction }) => {
 				const mutation = transaction.mutations[0];

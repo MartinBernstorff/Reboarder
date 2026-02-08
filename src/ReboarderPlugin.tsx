@@ -5,14 +5,11 @@ import { ReboarderView, REBOARDER_VIEW_TYPE } from 'src/ReboarderView';
 import { queryClient } from 'src/model/queryClient';
 import { createFileCollection } from 'src/model/fileCollection';
 import { type FileRecord } from 'src/model/FileRecord';
-import { type FilePath, type FileName, type EpochMs, type SnoozeIntervalHours } from 'src/model/brands';
+import { type FilePath, type FileName, type EpochMs, ExpireTimeSchema } from 'src/model/brands';
 import {
 	getSnoozeEntry,
 	clearSnoozeEntry,
 	isNoteSnoozed,
-	toISODateTime,
-	parseISODateTime,
-	type ExpireTime,
 } from 'src/snooze/snooze';
 
 export default class ReboarderPlugin extends Plugin {
@@ -153,17 +150,16 @@ export default class ReboarderPlugin extends Plugin {
 		this.registerBoardCommands();
 	}
 
-	snoozeNote(file: FileRecord, hours: SnoozeIntervalHours) {
+	snoozeNote(file: FileRecord, hours: number) {
 		const expireDate = new Date(Date.now() + (hours * 60 * 60 * 1000));
 		this.fileCollection.update(file.name,
 			(draft) => {
-				draft.snoozeInfo.interval = hours;
-				draft.snoozeInfo.expireTime = toISODateTime(expireDate);
+				draft.snoozeInfo.expireTime = ExpireTimeSchema.parse(expireDate);
 			}
 		);
 	}
 
-	getSnoozeEntry(file: TFile): { interval: SnoozeIntervalHours; expire: ExpireTime } | null {
+	getSnoozeEntry(file: TFile) {
 		return getSnoozeEntry(this.app, file);
 	}
 
@@ -179,7 +175,6 @@ export default class ReboarderPlugin extends Plugin {
 			name: file.name as FileName,
 			mtime: file.stat.mtime as EpochMs,
 			snoozeInfo: {
-				interval: snoozeEntry?.interval,
 				expireTime: snoozeEntry?.expire,
 			}
 		};
@@ -198,12 +193,12 @@ export default class ReboarderPlugin extends Plugin {
 
 		for (const file of files) {
 			const snoozeEntry = getSnoozeEntry(this.app, file);
-			if (snoozeEntry && parseISODateTime(snoozeEntry.expire).getTime() < Date.now()) {
+			if (snoozeEntry && snoozeEntry.expire.getTime() < Date.now()) {
 				expiredSnoozes.push({ file, expireTime: snoozeEntry.expire });
 			}
 		}
 
-		expiredSnoozes.sort((a, b) => parseISODateTime(a.expireTime).getTime() - parseISODateTime(b.expireTime).getTime());
+		expiredSnoozes.sort((a, b) => a.expireTime.getTime() - b.expireTime.getTime());
 
 		for (const { file } of expiredSnoozes) {
 			await clearSnoozeEntry(this.app, file);

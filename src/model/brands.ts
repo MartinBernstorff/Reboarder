@@ -12,10 +12,6 @@ export type FileName = z.infer<typeof FileNameSchema>;
 export const EpochMsSchema = z.number().brand('EpochMs');
 export type EpochMs = z.infer<typeof EpochMsSchema>;
 
-/** Snooze duration in hours */
-export const SnoozeIntervalHoursSchema = z.number().brand('SnoozeIntervalHours');
-export type SnoozeIntervalHours = z.infer<typeof SnoozeIntervalHoursSchema>;
-
-/** ISO datetime string for snooze expiration */
-export const ExpireTimeSchema = z.iso.datetime().brand('ExpireTime');
+/** Date for snooze expiration */
+export const ExpireTimeSchema = z.coerce.date().brand('ExpireTime');
 export type ExpireTime = z.infer<typeof ExpireTimeSchema>;

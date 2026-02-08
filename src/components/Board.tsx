@@ -51,7 +51,7 @@ export const Board: React.FC<BoardProps> = ({
 				name: fileName as FileName,
 				mtime: Date.now() as EpochMs,
 				path: (folder.path + '/' + fileName) as FilePath,
-				snoozeInfo: { interval: undefined, expireTime: undefined }
+				snoozeInfo: { expireTime: undefined }
 			});
 		} catch (e) {
 			console.error('Failed to create note', e);
