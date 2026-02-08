@@ -8,6 +8,7 @@ import { type FileRecord } from 'src/model/FileRecord';
 import { type FilePath, type FileName, type EpochMs, ExpireTimeSchema } from 'src/model/brands';
 import {
 	getSnoozeEntry,
+	setSnoozeEntry,
 	clearSnoozeEntry,
 	isNoteSnoozed,
 } from 'src/snooze/snooze';
@@ -150,13 +151,18 @@ export default class ReboarderPlugin extends Plugin {
 		this.registerBoardCommands();
 	}
 
-	snoozeNote(file: FileRecord, hours: number) {
+	async snoozeNote(file: FileRecord, hours: number) {
 		const expireDate = new Date(Date.now() + (hours * 60 * 60 * 1000));
-		this.fileCollection.update(file.name,
-			(draft) => {
-				draft.snoozeInfo.expireTime = ExpireTimeSchema.parse(expireDate);
-			}
-		);
+		const expireTime = ExpireTimeSchema.parse(expireDate);
+
+		this.fileCollection.update(file.name, (draft) => {
+			draft.snoozeInfo.expireTime = expireTime;
+		});
+
+		const tfile = this.app.vault.getAbstractFileByPath(file.path);
+		if (tfile instanceof TFile) {
+			await setSnoozeEntry(this.app, tfile, expireTime);
+		}
 	}
 
 	getSnoozeEntry(file: TFile) {

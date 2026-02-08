@@ -1,12 +1,10 @@
 import { App, TFile, Notice } from 'obsidian';
-import { getFrontmatter, editFrontmatter } from './frontmatter';
 import { ExpireTimeSchema, type ExpireTime } from 'src/model/brands';
 
 // Re-export branded types for consumers that imported from here
 export type { ExpireTime };
 
 // Frontmatter keys for snooze data
-const SNOOZE_INTERVAL_KEY = 'reboarder_snooze_interval'; // kept for cleanup of old data
 export const SNOOZE_EXPIRE_KEY = 'reboarder_snooze_expire';
 
 /**
@@ -21,7 +19,7 @@ function toISODateTime(date: Date): string {
  * Return snooze entry from a note frontmatter, if present and valid.
  */
 export function getSnoozeEntry(app: App, file: TFile): { expire: ExpireTime } | null {
-	const fm = getFrontmatter(app, file);
+	const fm = app.metadataCache.getFileCache(file)?.frontmatter;
 	if (!fm) return null;
 
 	const expire = fm[SNOOZE_EXPIRE_KEY];
@@ -36,20 +34,18 @@ export function getSnoozeEntry(app: App, file: TFile): { expire: ExpireTime } | 
  * Set snooze entry in a note's frontmatter.
  */
 export async function setSnoozeEntry(app: App, file: TFile, expire: ExpireTime) {
-	await editFrontmatter(app, file, map => {
-		delete map[SNOOZE_INTERVAL_KEY];
-		map[SNOOZE_EXPIRE_KEY] = toISODateTime(expire);
-	}, [SNOOZE_INTERVAL_KEY, SNOOZE_EXPIRE_KEY]);
+	await app.fileManager.processFrontMatter(file, (fm) => {
+		fm[SNOOZE_EXPIRE_KEY] = toISODateTime(expire);
+	});
 }
 
 /**
  * Clear snooze entry from a note's frontmatter.
  */
 export async function clearSnoozeEntry(app: App, file: TFile) {
-	await editFrontmatter(app, file, map => {
-		delete map[SNOOZE_INTERVAL_KEY];
-		delete map[SNOOZE_EXPIRE_KEY];
-	}, [SNOOZE_INTERVAL_KEY, SNOOZE_EXPIRE_KEY]);
+	await app.fileManager.processFrontMatter(file, (fm) => {
+		delete fm[SNOOZE_EXPIRE_KEY];
+	});
 }
 
 /**
