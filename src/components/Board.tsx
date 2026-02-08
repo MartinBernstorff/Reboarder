@@ -1,5 +1,5 @@
 import React, { useEffect, useRef } from 'react';
-import { TFolder } from 'obsidian';
+import { Notice, TFolder } from 'obsidian';
 import { Card } from './Card';
 import { useLiveQuery } from '@tanstack/react-db';
 import ReboarderPlugin from 'src/ReboarderPlugin';
@@ -78,9 +78,13 @@ export const Board: React.FC<BoardProps> = ({
 								plugin.fileCollection.update(fileRecord.name, (draft) => {
 									draft.path = newPath;
 								});
+								new Notice(`Unpinned ${fileRecord.name}`);
 							}}
 							onOpen={() => onOpenNote(fileRecord)}
-							onDelete={()=> plugin.fileCollection.delete(fileRecord.name)}
+							onDelete={() => {
+								plugin.fileCollection.delete(fileRecord.name);
+								new Notice(`Deleted ${fileRecord.name}`);
+							}}
 						/>
 					))
 				)}

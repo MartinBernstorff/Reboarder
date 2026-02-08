@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { TFile, MarkdownRenderer, Component } from 'obsidian';
-import { X, AlarmClock } from 'lucide-react';
+import { AlarmClock, PinOff, Trash2 } from 'lucide-react';
 import { CustomSnoozeModal } from './CustomSnoozeModal';
 import ReboarderPlugin from 'src/ReboarderPlugin';
 import { type FileRecord } from 'src/model/FileRecord';
@@ -11,12 +11,15 @@ interface CardProps {
 	plugin: ReboarderPlugin;
 	onUnpin: () => void;
 	onOpen: () => void;
+	onDelete: () => void;
 }
 
-export const Card: React.FC<CardProps> = ({ file, plugin, onUnpin, onOpen }) => {
+export const Card: React.FC<CardProps> = ({ file, plugin, onUnpin, onOpen, onDelete }) => {
 	const app = useApp();
 	const [showCustomSnooze, setShowCustomSnooze] = useState(false);
 	const previewRef = useRef<HTMLDivElement>(null);
+	const deleteTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+	const [deleteHolding, setDeleteHolding] = useState(false);
 
 	useEffect(() => {
 		let component: Component | null = null;
@@ -81,6 +84,25 @@ export const Card: React.FC<CardProps> = ({ file, plugin, onUnpin, onOpen }) => 
 		setShowCustomSnooze(true);
 	};
 
+	const handleDeletePointerDown = (e: React.PointerEvent) => {
+		e.stopPropagation();
+		setDeleteHolding(true);
+		deleteTimerRef.current = setTimeout(() => {
+			deleteTimerRef.current = null;
+			setDeleteHolding(false);
+			onDelete();
+		}, 500);
+	};
+
+	const cancelDelete = (e: React.PointerEvent) => {
+		e.stopPropagation();
+		setDeleteHolding(false);
+		if (deleteTimerRef.current) {
+			clearTimeout(deleteTimerRef.current);
+			deleteTimerRef.current = null;
+		}
+	};
+
 	return (
 		<>
 			<div className="reboarder-card" onClick={onOpen}>
@@ -92,7 +114,7 @@ export const Card: React.FC<CardProps> = ({ file, plugin, onUnpin, onOpen }) => 
 					className="reboarder-fab reboarder-fab-unpin"
 					title="Unpin"
 				>
-					<X size={14} />
+					<PinOff size={14} />
 				</button>
 				<div className="reboarder-card-header">
 					<h4>{file.name.replace(".md", "")}</h4>
@@ -100,6 +122,16 @@ export const Card: React.FC<CardProps> = ({ file, plugin, onUnpin, onOpen }) => 
 				<div className="reboarder-card-content">
 					<div ref={previewRef} className="markdown-preview-view" />
 				</div>
+				<button
+					onPointerDown={handleDeletePointerDown}
+					onPointerUp={cancelDelete}
+					onPointerLeave={cancelDelete}
+					onClick={(e) => e.stopPropagation()}
+					className={`reboarder-fab reboarder-fab-delete${deleteHolding ? ' reboarder-fab-delete-holding' : ''}`}
+					title="Hold to delete"
+				>
+					<Trash2 size={14} />
+				</button>
 				<button
 					onClick={handleSnoozeClick}
 					className="reboarder-fab reboarder-fab-snooze"

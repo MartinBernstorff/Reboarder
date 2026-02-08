@@ -201,6 +201,27 @@
     right: 6px;
 }
 
+.reboarder-fab-delete {
+    bottom: 6px;
+    left: 6px;
+    transition: background 0.05s ease, color 0.05s ease;
+}
+
+.reboarder-fab-delete-holding {
+    animation: delete-fill 0.5s linear forwards;
+}
+
+@keyframes delete-fill {
+    0% {
+        background: var(--background-primary);
+        color: var(--text-muted);
+    }
+    100% {
+        background: var(--color-red);
+        color: white;
+    }
+}
+
 .reboarder-empty {
     text-align: center;
     color: var(--text-muted);

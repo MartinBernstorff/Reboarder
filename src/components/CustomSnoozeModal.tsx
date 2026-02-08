@@ -1,4 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
+import { Notice } from 'obsidian';
 import { usePlugin } from 'src/hooks';
 import { type FileRecord } from 'src/model/FileRecord';
 
@@ -45,6 +46,7 @@ export const CustomSnoozeModal: React.FC<CustomSnoozeModalProps> = ({
 	const handleSnooze = () => {
 		const hours = days * 24;
 		plugin.snoozeNote(file, hours);
+		new Notice(`Snoozed ${file.name} for ${days} day(s)`);
 		onClose();
 	};
 
