@@ -1,6 +1,5 @@
-import React, { useState, useEffect, useRef } from 'react';
-import { TFile, MarkdownRenderer, Component } from 'obsidian';
-import { AlarmClock, PinOff, Trash2 } from 'lucide-react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
+import { TFile, MarkdownRenderer, Component, setIcon } from 'obsidian';
 import { CustomSnoozeModal } from './CustomSnoozeModal';
 import ReboarderPlugin from 'src/ReboarderPlugin';
 import { type FileRecord } from 'src/model/FileRecord';
@@ -20,6 +19,10 @@ export const Card: React.FC<CardProps> = ({ file, plugin, onUnpin, onOpen, onDel
 	const previewRef = useRef<HTMLDivElement>(null);
 	const deleteTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 	const [deleteHolding, setDeleteHolding] = useState(false);
+
+	const iconRef = useCallback((icon: string) => (el: HTMLButtonElement | null) => {
+		if (el) setIcon(el, icon);
+	}, []);
 
 	useEffect(() => {
 		let component: Component | null = null;
@@ -107,15 +110,14 @@ export const Card: React.FC<CardProps> = ({ file, plugin, onUnpin, onOpen, onDel
 		<>
 			<div className="reboarder-card" onClick={onOpen}>
 				<button
+					ref={iconRef('pin-off')}
 					onClick={(e) => {
 						e.stopPropagation();
 						onUnpin();
 					}}
 					className="reboarder-fab reboarder-fab-unpin"
 					title="Unpin"
-				>
-					<PinOff size={14} />
-				</button>
+				/>
 				<div className="reboarder-card-header">
 					<h4>{file.name.replace(".md", "")}</h4>
 				</div>
@@ -123,22 +125,20 @@ export const Card: React.FC<CardProps> = ({ file, plugin, onUnpin, onOpen, onDel
 					<div ref={previewRef} className="markdown-preview-view" />
 				</div>
 				<button
+					ref={iconRef('trash-2')}
 					onPointerDown={handleDeletePointerDown}
 					onPointerUp={cancelDelete}
 					onPointerLeave={cancelDelete}
 					onClick={(e) => e.stopPropagation()}
 					className={`reboarder-fab reboarder-fab-delete${deleteHolding ? ' reboarder-fab-delete-holding' : ''}`}
 					title="Hold to delete"
-				>
-					<Trash2 size={14} />
-				</button>
+				/>
 				<button
+					ref={iconRef('alarm-clock')}
 					onClick={handleSnoozeClick}
 					className="reboarder-fab reboarder-fab-snooze"
 					title="Snooze"
-				>
-					<AlarmClock size={14} />
-				</button>
+				/>
 			</div>
 
 			<CustomSnoozeModal

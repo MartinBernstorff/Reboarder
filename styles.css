@@ -186,6 +186,11 @@
     z-index: 1;
 }
 
+.reboarder-fab svg {
+    width: 14px;
+    height: 14px;
+}
+
 .reboarder-fab:hover {
     background: var(--background-modifier-hover);
     color: var(--text-normal);
