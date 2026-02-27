@@ -1,6 +1,5 @@
-import React, { useState, useEffect, useRef, useCallback } from 'react';
-import { TFile, MarkdownRenderer, Component, setIcon } from 'obsidian';
-import { CustomSnoozeModal } from './CustomSnoozeModal';
+import React, { useEffect, useRef, useCallback } from 'react';
+import { TFile, MarkdownRenderer, Component } from 'obsidian';
 import ReboarderPlugin from 'src/ReboarderPlugin';
 import { type FileRecord } from 'src/model/FileRecord';
 import { useApp } from 'src/hooks';
@@ -8,21 +7,13 @@ import { useApp } from 'src/hooks';
 interface CardProps {
 	file: FileRecord;
 	plugin: ReboarderPlugin;
-	onUnpin: () => void;
+	isSelected: boolean;
 	onOpen: () => void;
-	onDelete: () => void;
 }
 
-export const Card: React.FC<CardProps> = ({ file, plugin, onUnpin, onOpen, onDelete }) => {
+export const Card: React.FC<CardProps> = ({ file, plugin, isSelected, onOpen }) => {
 	const app = useApp();
-	const [showCustomSnooze, setShowCustomSnooze] = useState(false);
 	const previewRef = useRef<HTMLDivElement>(null);
-	const deleteTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-	const [deleteHolding, setDeleteHolding] = useState(false);
-
-	const iconRef = useCallback((icon: string) => (el: HTMLButtonElement | null) => {
-		if (el) setIcon(el, icon);
-	}, []);
 
 	useEffect(() => {
 		let component: Component | null = null;
@@ -82,70 +73,17 @@ export const Card: React.FC<CardProps> = ({ file, plugin, onUnpin, onOpen, onDel
 		};
 	}, [file, app.vault, plugin.settings.cardPreviewLength]);
 
-	const handleSnoozeClick = (e: React.MouseEvent) => {
-		e.stopPropagation();
-		setShowCustomSnooze(true);
-	};
-
-	const handleDeletePointerDown = (e: React.PointerEvent) => {
-		e.stopPropagation();
-		setDeleteHolding(true);
-		deleteTimerRef.current = setTimeout(() => {
-			deleteTimerRef.current = null;
-			setDeleteHolding(false);
-			onDelete();
-		}, 500);
-	};
-
-	const cancelDelete = (e: React.PointerEvent) => {
-		e.stopPropagation();
-		setDeleteHolding(false);
-		if (deleteTimerRef.current) {
-			clearTimeout(deleteTimerRef.current);
-			deleteTimerRef.current = null;
-		}
-	};
-
 	return (
-		<>
-			<div className="reboarder-card" onClick={onOpen}>
-				<button
-					ref={iconRef('pin-off')}
-					onClick={(e) => {
-						e.stopPropagation();
-						onUnpin();
-					}}
-					className="reboarder-fab reboarder-fab-unpin"
-					title="Unpin"
-				/>
-				<div className="reboarder-card-header">
-					<h4>{file.name.replace(".md", "")}</h4>
-				</div>
-				<div className="reboarder-card-content">
-					<div ref={previewRef} className="markdown-preview-view" />
-				</div>
-				<button
-					ref={iconRef('trash-2')}
-					onPointerDown={handleDeletePointerDown}
-					onPointerUp={cancelDelete}
-					onPointerLeave={cancelDelete}
-					onClick={(e) => e.stopPropagation()}
-					className={`reboarder-fab reboarder-fab-delete${deleteHolding ? ' reboarder-fab-delete-holding' : ''}`}
-					title="Hold to delete"
-				/>
-				<button
-					ref={iconRef('alarm-clock')}
-					onClick={handleSnoozeClick}
-					className="reboarder-fab reboarder-fab-snooze"
-					title="Snooze"
-				/>
+		<div
+			className={`reboarder-card${isSelected ? ' reboarder-card-selected' : ''}`}
+			onClick={onOpen}
+		>
+			<div className="reboarder-card-header">
+				<h4>{file.name.replace(".md", "")}</h4>
 			</div>
-
-			<CustomSnoozeModal
-				file={file}
-				isOpen={showCustomSnooze}
-				onClose={() => setShowCustomSnooze(false)}
-			/>
-		</>
+			<div className="reboarder-card-content">
+				<div ref={previewRef} className="markdown-preview-view" />
+			</div>
+		</div>
 	);
 };

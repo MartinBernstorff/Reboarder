@@ -5,7 +5,7 @@
 	"main": "main.js",
 	"scripts": {
 		"build": "node update-version.mjs && node esbuild.config.mjs production",
-		"build:watch": "chokidar '*.json' '*.css' '*.ts' '**/*.tsx' -c 'pnpm run build'"
+		"build:watch": "chokidar '*.json' '!manifest.json' '*.css' '*.ts' '**/*.tsx' -c 'pnpm run build'"
 	},
 	"keywords": [],
 	"author": "",
