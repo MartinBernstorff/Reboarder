@@ -1,0 +1,12 @@
+[tasks.watch]
+alias = "w"
+run = "pnpm run build:watch"
+depends = ["install", "build"]
+
+[tasks.build]
+run = "pnpm run build"
+depends = ["install"]
+
+[tasks.install]
+run = "pnpm install"
+sources = ["package.json", "package-lock.json", "pnpm-lock.yaml"]
