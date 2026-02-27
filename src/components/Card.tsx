@@ -8,10 +8,11 @@ interface CardProps {
 	file: FileRecord;
 	plugin: ReboarderPlugin;
 	isSelected: boolean;
+	distanceFromSelected: number;
 	onOpen: () => void;
 }
 
-export const Card: React.FC<CardProps> = ({ file, plugin, isSelected, onOpen }) => {
+export const Card: React.FC<CardProps> = ({ file, plugin, isSelected, distanceFromSelected, onOpen }) => {
 	const app = useApp();
 	const previewRef = useRef<HTMLDivElement>(null);
 
@@ -76,6 +77,7 @@ export const Card: React.FC<CardProps> = ({ file, plugin, isSelected, onOpen }) 
 	return (
 		<div
 			className={`reboarder-card${isSelected ? ' reboarder-card-selected' : ''}`}
+			style={{ opacity: Math.max(0.15, 1 - distanceFromSelected * 0.2) }}
 			onClick={onOpen}
 		>
 			<div className="reboarder-card-header">

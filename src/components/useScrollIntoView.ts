@@ -11,7 +11,7 @@ export function useScrollIntoView(
 		const children = container.querySelectorAll(childSelector);
 		const child = children[selectedIndex];
 		if (child) {
-			child.scrollIntoView({ block: 'nearest', behavior: 'instant' });
+			child.scrollIntoView({ block: 'center', behavior: 'smooth' });
 		}
 	}, [selectedIndex, containerRef, childSelector]);
 }

@@ -7,7 +7,7 @@ import ReboarderPlugin from 'src/ReboarderPlugin';
 import { type FileRecord, isSnoozed } from 'src/model/FileRecord';
 import { type FilePath } from 'src/model/brands';
 import { Notes } from 'src/Notes';
-import { useGridNavigation } from './useGridNavigation';
+import { useListNavigation } from './useGridNavigation';
 import { useScrollIntoView } from './useScrollIntoView';
 import { useDoublePress } from './useDoublePress';
 
@@ -67,7 +67,7 @@ export const Board: React.FC<BoardProps> = ({
 		return () => plugin.app.workspace.offref(ref);
 	}, [plugin]);
 
-	const navigate = useGridNavigation(boardFiles.length, boardRef, '.reboarder-cards-container');
+	const navigate = useListNavigation(boardFiles.length);
 	useScrollIntoView(boardRef, '.reboarder-card', selectedIndex);
 
 	const handleDelete = useCallback(() => {
@@ -90,7 +90,7 @@ export const Board: React.FC<BoardProps> = ({
 
 		// If no card is selected, select the first one on any navigation key
 		if (selectedIndex === null) {
-			if (['ArrowDown', 'ArrowRight', 'ArrowUp', 'ArrowLeft', 'h', 'j', 'k', 'l', 'Tab'].includes(e.key)) {
+			if (['ArrowDown', 'ArrowUp', 'j', 'k', 'Tab'].includes(e.key)) {
 				e.preventDefault();
 				setSelectedIndex(0);
 			}
@@ -99,13 +99,9 @@ export const Board: React.FC<BoardProps> = ({
 
 		const selected = boardFiles[selectedIndex];
 
-		const directionMap: Record<string, 'up' | 'down' | 'left' | 'right'> = {
-			ArrowRight: 'right',
-			ArrowLeft: 'left',
+		const directionMap: Record<string, 'up' | 'down'> = {
 			ArrowDown: 'down',
 			ArrowUp: 'up',
-			l: 'right',
-			h: 'left',
 			j: 'down',
 			k: 'up',
 		};
@@ -185,6 +181,7 @@ export const Board: React.FC<BoardProps> = ({
 							file={fileRecord}
 							plugin={plugin}
 							isSelected={index === selectedIndex}
+							distanceFromSelected={Math.abs(index - selectedIndex)}
 							onOpen={() => onOpenNote(fileRecord)}
 						/>
 					))
