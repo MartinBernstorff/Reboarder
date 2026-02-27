@@ -15,11 +15,13 @@ export class Notes {
             idx++;
         }
 
-        fileCollection.insert({
+        const record = {
             name: FileNameSchema.parse(fileName),
             mtime: EpochMsSchema.parse(Date.now()),
             path: FilePathSchema.parse((folder.path + '/' + fileName)),
             snoozeInfo: { expireTime: undefined }
-        });
+        };
+        fileCollection.insert(record);
+        return record;
     }
 }

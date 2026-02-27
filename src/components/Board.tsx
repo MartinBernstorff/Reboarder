@@ -7,6 +7,9 @@ import ReboarderPlugin from 'src/ReboarderPlugin';
 import { type FileRecord, isSnoozed } from 'src/model/FileRecord';
 import { type FilePath } from 'src/model/brands';
 import { Notes } from 'src/Notes';
+import { useGridNavigation } from './useGridNavigation';
+import { useScrollIntoView } from './useScrollIntoView';
+import { useDoublePress } from './useDoublePress';
 
 interface BoardProps {
 	folder: TFolder;
@@ -23,7 +26,7 @@ export const Board: React.FC<BoardProps> = ({
 	const boardRef = useRef<HTMLDivElement>(null);
 	const [selectedIndex, setSelectedIndex] = useState<number>(0);
 	const [snoozeFile, setSnoozeFile] = useState<FileRecord | null>(null);
-	const [deleteFile, setDeleteFile] = useState<FileRecord | null>(null);
+	const [boardState, setBoardState] = useState<'navigating' | 'modal'>('navigating');
 
 	useEffect(() => {
 		if (wokenRef.current !== folder.path) {
@@ -64,10 +67,30 @@ export const Board: React.FC<BoardProps> = ({
 		return () => plugin.app.workspace.offref(ref);
 	}, [plugin]);
 
+	const navigate = useGridNavigation(boardFiles.length, boardRef, '.reboarder-cards-container');
+	useScrollIntoView(boardRef, '.reboarder-card', selectedIndex);
+
+	const handleDelete = useCallback(() => {
+		const selected = boardFiles[selectedIndex];
+		if (selected) {
+			plugin.fileCollection.delete(selected.name);
+			new Notice(`Deleted ${selected.name}`);
+		}
+	}, [boardFiles, selectedIndex, plugin]);
+
+	const onDeleteDoublePress = useDoublePress(handleDelete);
+
+	const handleNewNote = useCallback(async () => {
+		const record = Notes.createNew(folder, plugin.fileCollection);
+		if (record) onOpenNote(record);
+	}, [folder, plugin, onOpenNote]);
+
 	const handleKeyDown = useCallback((e: React.KeyboardEvent) => {
+		if (boardState === 'modal') return;
+
 		// If no card is selected, select the first one on any navigation key
 		if (selectedIndex === null) {
-			if (['ArrowDown', 'ArrowRight', 'ArrowUp', 'ArrowLeft', 'Tab'].includes(e.key)) {
+			if (['ArrowDown', 'ArrowRight', 'ArrowUp', 'ArrowLeft', 'h', 'j', 'k', 'l', 'Tab'].includes(e.key)) {
 				e.preventDefault();
 				setSelectedIndex(0);
 			}
@@ -76,26 +99,39 @@ export const Board: React.FC<BoardProps> = ({
 
 		const selected = boardFiles[selectedIndex];
 
+		const directionMap: Record<string, 'up' | 'down' | 'left' | 'right'> = {
+			ArrowRight: 'right',
+			ArrowLeft: 'left',
+			ArrowDown: 'down',
+			ArrowUp: 'up',
+			l: 'right',
+			h: 'left',
+			j: 'down',
+			k: 'up',
+		};
+		const direction = directionMap[e.key];
+		if (direction) {
+			e.preventDefault();
+			const newIndex = navigate(direction, selectedIndex);
+			if (newIndex !== null) setSelectedIndex(newIndex);
+			return;
+		}
+
 		switch (e.key) {
-			case 'ArrowDown':
-			case 'ArrowRight':
 			case 'Tab':
-				if (e.key === 'Tab' && e.shiftKey) break;
+				if (e.shiftKey) break;
 				e.preventDefault();
 				setSelectedIndex(i => ((i ?? 0) + 1) % boardFiles.length);
 				break;
-			case 'ArrowUp':
-			case 'ArrowLeft':
-				e.preventDefault();
-				setSelectedIndex(i => ((i ?? 0) - 1 + boardFiles.length) % boardFiles.length);
-				break;
 			case 'Enter':
+			case 'f':
 				e.preventDefault();
 				onOpenNote(selected);
 				break;
 			case 's':
 				e.preventDefault();
 				setSnoozeFile(selected);
+				setBoardState('modal');
 				break;
 			case 'u':
 				e.preventDefault();
@@ -109,7 +145,11 @@ export const Board: React.FC<BoardProps> = ({
 				break;
 			case 'd':
 				e.preventDefault();
-				setDeleteFile(selected);
+				onDeleteDoublePress();
+				break;
+			case 'n':
+				e.preventDefault();
+				handleNewNote();
 				break;
 		}
 
@@ -118,37 +158,10 @@ export const Board: React.FC<BoardProps> = ({
 			e.preventDefault();
 			setSelectedIndex(i => ((i ?? 0) - 1 + boardFiles.length) % boardFiles.length);
 		}
-	}, [boardFiles, selectedIndex, onOpenNote, plugin]);
-
-	const closeDeleteModal = useCallback(() => {
-		setDeleteFile(null);
-		boardRef.current?.focus();
-	}, []);
-
-	const handleDeleteConfirm = () => {
-		if (deleteFile) {
-			plugin.fileCollection.delete(deleteFile.name);
-			new Notice(`Deleted ${deleteFile.name}`);
-			closeDeleteModal();
-		}
-	};
-
-	// Escape key handler for delete modal
-	useEffect(() => {
-		if (!deleteFile) return;
-		const handleEscape = (e: KeyboardEvent) => {
-			if (e.key === 'Escape') {
-				e.preventDefault();
-				e.stopPropagation();
-				closeDeleteModal();
-			}
-		};
-		document.addEventListener('keydown', handleEscape);
-		return () => document.removeEventListener('keydown', handleEscape);
-	}, [deleteFile, closeDeleteModal]);
+	}, [boardState, boardFiles, selectedIndex, onOpenNote, plugin, onDeleteDoublePress, handleNewNote]);
 
 	const handleNewClick = async () => {
-		Notes.createNew(folder, plugin.fileCollection);
+		handleNewNote();
 	};
 
 	return (
@@ -182,24 +195,10 @@ export const Board: React.FC<BoardProps> = ({
 				<CustomSnoozeModal
 					file={snoozeFile}
 					isOpen={true}
-					onClose={() => { setSnoozeFile(null); boardRef.current?.focus(); }}
+					onClose={() => { setSnoozeFile(null); setBoardState('navigating'); boardRef.current?.focus(); }}
 				/>
 			)}
 
-			{deleteFile && (
-				<div className="reboarder-modal-backdrop">
-					<div className="reboarder-modal">
-						<h2>Delete Note</h2>
-						<div className="reboarder-modal-content">
-							<p>Are you sure you want to delete "{deleteFile.name.replace('.md', '')}"?</p>
-						</div>
-						<div className="reboarder-modal-buttons">
-							<button onClick={closeDeleteModal}>Cancel</button>
-							<button onClick={handleDeleteConfirm} className="mod-cta">Delete</button>
-						</div>
-					</div>
-				</div>
-			)}
 		</div>
 	);
 };

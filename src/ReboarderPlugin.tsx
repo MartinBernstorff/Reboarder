@@ -5,7 +5,7 @@ import { ReboarderView, REBOARDER_VIEW_TYPE } from 'src/ReboarderView';
 import { queryClient } from 'src/model/queryClient';
 import { createFileCollection } from 'src/model/fileCollection';
 import { type FileRecord } from 'src/model/FileRecord';
-import { type FilePath, type FileName, type EpochMs, ExpireTimeSchema } from 'src/model/brands';
+import { type FilePath, type FileName, type EpochMs, type ExpireTime, ExpireTimeSchema } from 'src/model/brands';
 import {
 	getSnoozeEntry,
 	setSnoozeEntry,
