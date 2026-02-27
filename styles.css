@@ -184,6 +184,9 @@
     padding: 0;
     transition: all 0.2s ease;
     z-index: 1;
+    -webkit-appearance: none;
+    appearance: none;
+    box-shadow: none;
 }
 
 .reboarder-fab svg {
