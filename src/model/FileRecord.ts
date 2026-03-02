@@ -15,7 +15,12 @@ export const FileRecordSchema = z.object({
 export type FileRecord = z.infer<typeof FileRecordSchema>;
 
 export function isSnoozed(record: FileRecord): boolean {
-	return !!(record.snoozeInfo.expireTime && Date.now() < record.snoozeInfo.expireTime.getTime());
+	const isSnoozed = !!record.snoozeInfo.expireTime;
+	if (isSnoozed) {
+		console.log(`File ${record.path} is snoozed until ${record.snoozeInfo.expireTime}`);
+		return true;
+	}
+	return false;
 }
 
 export function getFileRecordRemainingHours(record: FileRecord): number | undefined {

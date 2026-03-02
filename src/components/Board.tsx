@@ -168,8 +168,6 @@ export const Board: React.FC<BoardProps> = ({
 			onKeyDown={handleKeyDown}
 		>
 			<div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '8px', marginBottom: '8px' }}>
-				<h3 className="reboarder-board-title" style={{ marginBottom: 0 }}>{folder.name}</h3>
-				<button className="reboarder-new-note-btn" onClick={handleNewClick} aria-label="Add new note">+ New</button>
 			</div>
 			<div className="reboarder-cards-container">
 				{boardFiles.length === 0 ? (
