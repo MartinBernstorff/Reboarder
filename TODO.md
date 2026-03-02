@@ -1,0 +1,1 @@
+* Every time I focus a different card, the entire thing reloads. Seems like a performance issue?
