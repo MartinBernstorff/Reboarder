@@ -3,6 +3,7 @@ import { Notice, TFolder } from 'obsidian';
 import { Card } from './Card';
 import { CustomSnoozeModal } from './CustomSnoozeModal';
 import { useLiveQuery } from '@tanstack/react-db';
+import { useAutoAnimate } from '@formkit/auto-animate/react';
 import ReboarderPlugin from 'src/ReboarderPlugin';
 import { type FileRecord, isSnoozed } from 'src/model/FileRecord';
 import { type FilePath } from 'src/model/brands';
@@ -68,6 +69,7 @@ export const Board: React.FC<BoardProps> = ({
 		return () => plugin.app.workspace.offref(ref);
 	}, [plugin]);
 
+	const [animateRef] = useAutoAnimate();
 	const navigate = useListNavigation(boardFiles.length);
 	useScrollIntoView(boardRef, '.reboarder-card', selectedIndex);
 
@@ -170,7 +172,7 @@ export const Board: React.FC<BoardProps> = ({
 		>
 			<div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '8px', marginBottom: '8px' }}>
 			</div>
-			<div className="reboarder-cards-container">
+			<div className="reboarder-cards-container" ref={animateRef}>
 				{boardFiles.length === 0 ? (
 					<div className="reboarder-empty-board">No notes in this folder</div>
 				) : (
