@@ -7,7 +7,11 @@
       "Bash(tk:*)",
       "WebSearch",
       "WebFetch(domain:gist.github.com)",
-      "Bash(pnpm run:*)"
+      "Bash(pnpm run:*)",
+      "WebFetch(domain:tanstack.com)",
+      "WebFetch(domain:github.com)",
+      "WebFetch(domain:raw.githubusercontent.com)",
+      "Bash(npx tsgo:*)"
     ]
   }
 }
