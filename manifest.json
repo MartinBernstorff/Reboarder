@@ -1,7 +1,7 @@
 {
 	"id": "reboarder",
 	"name": "Reboarder",
-	"version": "2026-03-02 07:34 ce0eaac",
+	"version": "2026-03-11 07:46 4eb8cfe",
 	"minAppVersion": "0.15.0",
 	"description": "A kanban-style board view for organizing notes by folder with snooze and unpin functionality.",
 	"author": "MartinBernstorff",
