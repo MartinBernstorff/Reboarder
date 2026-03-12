@@ -63,7 +63,9 @@ export function createFileCollection(
 			},
 			onInsert: async ({ transaction }) => {
 				const newItem = transaction.mutations[0].modified;
-				await app.vault.create(newItem.path, "");
+				if (!app.vault.getAbstractFileByPath(newItem.path)) {
+					await app.vault.create(newItem.path, "");
+				}
 				if (newItem.snoozeInfo.expireTime) {
 					await setSnoozeEntry(
 						app,

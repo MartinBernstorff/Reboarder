@@ -7,6 +7,7 @@ import ReboarderPlugin from 'src/ReboarderPlugin';
 import { type FileRecord, isSnoozed } from 'src/model/FileRecord';
 import { type FilePath } from 'src/model/brands';
 import { Notes } from 'src/Notes';
+import { Workspace } from 'src/Workspace';
 import { useListNavigation } from './useGridNavigation';
 import { useScrollIntoView } from './useScrollIntoView';
 import { useDoublePress } from './useDoublePress';
@@ -81,9 +82,9 @@ export const Board: React.FC<BoardProps> = ({
 	const onDeleteDoublePress = useDoublePress(handleDelete);
 
 	const handleNewNote = useCallback(async () => {
-		const record = Notes.createNew(folder, plugin.fileCollection);
-		if (record) onOpenNote(record);
-	}, [folder, plugin, onOpenNote]);
+		const tfile = await Notes.createNew(folder, plugin.fileCollection, plugin.app);
+		await Workspace.openAndFocusFile(tfile, plugin.app);
+	}, [folder, plugin]);
 
 	const handleKeyDown = useCallback((e: React.KeyboardEvent) => {
 		if (boardState === 'modal') return;
