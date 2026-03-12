@@ -10,5 +10,6 @@ assignee: Martin Bernstorff
 ---
 # Centralise shortcut management
 
-Have a central 'mode' store which registers which mode we're in, e.g. having a task selected. Use that store to register the right shortcuts, and to show those shortcuts in a status bar.
+Use tanstack hotkeys to register hotkeys. Probably check the online docs. Add a small "?" button in the corner, and when you press it, show the hotkeys that are registered.
+
 

@@ -4,7 +4,10 @@
       "Bash(npm run build:*)",
       "Bash(npx tsc:*)",
       "Bash(pnpm add:*)",
-      "Bash(tk:*)"
+      "Bash(tk:*)",
+      "WebSearch",
+      "WebFetch(domain:gist.github.com)",
+      "Bash(pnpm run:*)"
     ]
   }
 }
