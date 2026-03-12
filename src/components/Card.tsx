@@ -9,7 +9,7 @@ interface CardProps {
 	plugin: ReboarderPlugin;
 	isSelected: boolean;
 	distanceFromSelected: number;
-	onOpen: () => void;
+	onOpen: (file: FileRecord) => void;
 }
 
 export const Card: React.FC<CardProps> = ({ file, plugin, isSelected, distanceFromSelected, onOpen }) => {
@@ -72,13 +72,13 @@ export const Card: React.FC<CardProps> = ({ file, plugin, isSelected, distanceFr
 				component.unload();
 			}
 		};
-	}, [file, app.vault, plugin.settings.cardPreviewLength]);
+	}, [file.path, file.mtime, app.vault, plugin.settings.cardPreviewLength]);
 
 	return (
 		<div
 			className={`reboarder-card${isSelected ? ' reboarder-card-selected' : ''}`}
 			style={{ opacity: Math.max(0.15, 1 - distanceFromSelected * 0.2) }}
-			onClick={onOpen}
+			onClick={() => onOpen(file)}
 		>
 			<div className="reboarder-card-header">
 				<h4>{file.name.replace(".md", "")}</h4>

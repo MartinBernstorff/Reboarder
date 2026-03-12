@@ -1,6 +1,39 @@
 import esbuild from "esbuild";
 import process from "process";
 import builtins from "builtin-modules";
+import { transformSync } from "@babel/core";
+import fs from "fs";
+import path from "path";
+
+/** esbuild plugin that runs babel-plugin-react-compiler on source .tsx/.ts files */
+function reactCompilerPlugin() {
+	return {
+		name: "react-compiler",
+		setup(build) {
+			build.onLoad({ filter: /\.tsx?$/ }, (args) => {
+				// Skip node_modules
+				if (args.path.includes("node_modules")) return null;
+
+				const source = fs.readFileSync(args.path, "utf8");
+				const result = transformSync(source, {
+					filename: args.path,
+					presets: [
+						"@babel/preset-typescript",
+						["@babel/preset-react", { runtime: "automatic" }],
+					],
+					plugins: ["babel-plugin-react-compiler"],
+					sourceMaps: "inline",
+				});
+
+				return {
+					contents: result.code,
+					loader: "js", // Babel already transformed TS+JSX → JS
+					resolveDir: path.dirname(args.path),
+				};
+			});
+		},
+	};
+}
 
 const banner =
 `/*
@@ -17,6 +50,7 @@ const context = await esbuild.context({
 	},
 	entryPoints: ["main.tsx"],
 	bundle: true,
+	plugins: [reactCompilerPlugin()],
 	external: [
 		"obsidian",
 		"electron",

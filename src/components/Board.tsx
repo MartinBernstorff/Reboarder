@@ -181,7 +181,7 @@ export const Board: React.FC<BoardProps> = ({
 							plugin={plugin}
 							isSelected={index === selectedIndex}
 							distanceFromSelected={Math.abs(index - selectedIndex)}
-							onOpen={() => onOpenNote(fileRecord)}
+							onOpen={onOpenNote}
 						/>
 					))
 				)}
