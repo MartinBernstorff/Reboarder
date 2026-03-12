@@ -2,8 +2,11 @@ import React, { useEffect, useRef, useState, useCallback } from 'react';
 import { Notice, TFolder } from 'obsidian';
 import { Card } from './Card';
 import { CustomSnoozeModal } from './CustomSnoozeModal';
+import { HotkeyHelpOverlay } from './HotkeyHelpOverlay';
+import { HOTKEYS } from './hotkeys';
 import { useLiveQuery } from '@tanstack/react-db';
 import { useAutoAnimate } from '@formkit/auto-animate/react';
+import { useHotkey } from '@tanstack/react-hotkeys';
 import ReboarderPlugin from 'src/ReboarderPlugin';
 import { type FileRecord, isSnoozed } from 'src/model/FileRecord';
 import { type FilePath } from 'src/model/brands';
@@ -29,6 +32,7 @@ export const Board: React.FC<BoardProps> = ({
 	const [selectedIndex, setSelectedIndex] = useState<number>(0);
 	const [snoozeFile, setSnoozeFile] = useState<FileRecord | null>(null);
 	const [boardState, setBoardState] = useState<'navigating' | 'modal'>('navigating');
+	const [showHelp, setShowHelp] = useState(false);
 
 	useEffect(() => {
 		if (wokenRef.current !== folder.path) {
@@ -88,80 +92,70 @@ export const Board: React.FC<BoardProps> = ({
 		await Workspace.openAndFocusFile(tfile, plugin.app);
 	}, [folder, plugin]);
 
-	const handleKeyDown = useCallback((e: React.KeyboardEvent) => {
-		if (boardState === 'modal') return;
+	const isNavigating = boardState === 'navigating' && !showHelp;
+	const hotkeyOpts = { target: boardRef, enabled: isNavigating };
 
-		// If no card is selected, select the first one on any navigation key
-		if (selectedIndex === null) {
-			if (['ArrowDown', 'ArrowUp', 'j', 'k', 'Tab'].includes(e.key)) {
-				e.preventDefault();
-				setSelectedIndex(0);
-			}
-			return;
-		}
+	const moveDown = useCallback(() => {
+		const newIndex = navigate('down', selectedIndex);
+		if (newIndex !== null) setSelectedIndex(newIndex);
+	}, [navigate, selectedIndex]);
 
+	const moveUp = useCallback(() => {
+		const newIndex = navigate('up', selectedIndex);
+		if (newIndex !== null) setSelectedIndex(newIndex);
+	}, [navigate, selectedIndex]);
+
+	const openSelected = useCallback(() => {
 		const selected = boardFiles[selectedIndex];
+		if (selected) onOpenNote(selected);
+	}, [boardFiles, selectedIndex, onOpenNote]);
 
-		const directionMap: Record<string, 'up' | 'down'> = {
-			ArrowDown: 'down',
-			ArrowUp: 'up',
-			j: 'down',
-			k: 'up',
-		};
-		const direction = directionMap[e.key];
-		if (direction) {
+	const snoozeSelected = useCallback(() => {
+		const selected = boardFiles[selectedIndex];
+		if (selected) {
+			setSnoozeFile(selected);
+			setBoardState('modal');
+		}
+	}, [boardFiles, selectedIndex]);
+
+	const unpinSelected = useCallback(() => {
+		const selected = boardFiles[selectedIndex];
+		if (selected) {
+			const newPath = selected.name as string as FilePath;
+			plugin.fileCollection.update(selected.name, (draft) => {
+				draft.path = newPath;
+			});
+			new Notice(`Unpinned ${selected.name}`);
+		}
+	}, [boardFiles, selectedIndex, plugin]);
+
+	// Register hotkeys — key strings come from the HOTKEYS registry
+	useHotkey(HOTKEYS.moveDown.keys[0], moveDown, hotkeyOpts);
+	useHotkey(HOTKEYS.moveDown.keys[1], moveDown, hotkeyOpts);
+	useHotkey(HOTKEYS.moveUp.keys[0], moveUp, hotkeyOpts);
+	useHotkey(HOTKEYS.moveUp.keys[1], moveUp, hotkeyOpts);
+	useHotkey(HOTKEYS.nextCard.keys[0], () => {
+		setSelectedIndex(i => ((i ?? 0) + 1) % boardFiles.length);
+	}, hotkeyOpts);
+	useHotkey(HOTKEYS.prevCard.keys[0], () => {
+		setSelectedIndex(i => ((i ?? 0) - 1 + boardFiles.length) % boardFiles.length);
+	}, hotkeyOpts);
+	useHotkey(HOTKEYS.openNote.keys[0], openSelected, hotkeyOpts);
+	useHotkey(HOTKEYS.openNote.keys[1], openSelected, hotkeyOpts);
+	useHotkey(HOTKEYS.snooze.keys[0], snoozeSelected, hotkeyOpts);
+	useHotkey(HOTKEYS.unpin.keys[0], unpinSelected, hotkeyOpts);
+	useHotkey(HOTKEYS.delete.keys[0], () => onDeleteDoublePress(), hotkeyOpts);
+	useHotkey(HOTKEYS.newNote.keys[0], () => handleNewNote(), hotkeyOpts);
+
+	// '?' is not a valid TanStack Hotkey key, so we match it via onKeyDown
+	// using the same HOTKEYS registry value as source of truth.
+	const handleKeyDown = useCallback((e: React.KeyboardEvent) => {
+		if (!isNavigating) return;
+		if ((HOTKEYS.help.keys as readonly string[]).includes(e.key)) {
 			e.preventDefault();
-			const newIndex = navigate(direction, selectedIndex);
-			if (newIndex !== null) setSelectedIndex(newIndex);
-			return;
+			setShowHelp(true);
 		}
-
-		switch (e.key) {
-			case 'Tab':
-				if (e.shiftKey) break;
-				e.preventDefault();
-				setSelectedIndex(i => ((i ?? 0) + 1) % boardFiles.length);
-				break;
-			case 'Enter':
-			case 'f':
-				e.preventDefault();
-				onOpenNote(selected);
-				break;
-			case 's':
-				e.preventDefault();
-				setSnoozeFile(selected);
-				setBoardState('modal');
-				break;
-			case 'u':
-				e.preventDefault();
-				{
-					const newPath = selected.name as string as FilePath;
-					plugin.fileCollection.update(selected.name, (draft) => {
-						draft.path = newPath;
-					});
-					new Notice(`Unpinned ${selected.name}`);
-				}
-				break;
-			case 'd':
-				e.preventDefault();
-				onDeleteDoublePress();
-				break;
-			case 'n':
-				e.preventDefault();
-				handleNewNote();
-				break;
-		}
-
-		// Handle Shift+Tab
-		if (e.key === 'Tab' && e.shiftKey) {
-			e.preventDefault();
-			setSelectedIndex(i => ((i ?? 0) - 1 + boardFiles.length) % boardFiles.length);
-		}
-	}, [boardState, boardFiles, selectedIndex, onOpenNote, plugin, onDeleteDoublePress, handleNewNote]);
-
-	const handleNewClick = async () => {
-		handleNewNote();
-	};
+	}, [isNavigating]);
 
 	return (
 		<div
@@ -171,6 +165,13 @@ export const Board: React.FC<BoardProps> = ({
 			onKeyDown={handleKeyDown}
 		>
 			<div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '8px', marginBottom: '8px' }}>
+				<button
+					className="reboarder-help-btn"
+					onClick={() => setShowHelp(true)}
+					title="Keyboard shortcuts"
+				>
+					?
+				</button>
 			</div>
 			<div className="reboarder-cards-container" ref={animateRef}>
 				{boardFiles.length === 0 ? (
@@ -195,6 +196,10 @@ export const Board: React.FC<BoardProps> = ({
 					isOpen={true}
 					onClose={() => { setSnoozeFile(null); setBoardState('navigating'); boardRef.current?.focus(); }}
 				/>
+			)}
+
+			{showHelp && (
+				<HotkeyHelpOverlay onClose={() => { setShowHelp(false); boardRef.current?.focus(); }} />
 			)}
 
 		</div>

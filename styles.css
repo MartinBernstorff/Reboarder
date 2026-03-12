@@ -368,3 +368,69 @@
 .reboarder-snooze-clear:hover {
     background: var(--background-modifier-hover);
 }
+
+/* Help button */
+.reboarder-help-btn {
+    margin-left: auto;
+    width: 28px;
+    height: 28px;
+    border: 1px solid var(--background-modifier-border);
+    border-radius: 50%;
+    background: var(--background-secondary);
+    color: var(--text-muted);
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s ease;
+}
+
+.reboarder-help-btn:hover {
+    background: var(--background-modifier-hover);
+    color: var(--text-normal);
+}
+
+/* Hotkey help overlay */
+.reboarder-hotkey-help {
+    min-width: 320px;
+    max-width: 420px;
+}
+
+.reboarder-hotkey-table {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+.reboarder-hotkey-table tr {
+    border-bottom: 1px solid var(--background-modifier-border);
+}
+
+.reboarder-hotkey-table tr:last-child {
+    border-bottom: none;
+}
+
+.reboarder-hotkey-table td {
+    padding: 6px 8px;
+}
+
+.reboarder-hotkey-key {
+    text-align: right;
+    white-space: nowrap;
+    width: 1%;
+}
+
+.reboarder-hotkey-key kbd {
+    display: inline-block;
+    padding: 2px 8px;
+    border: 1px solid var(--background-modifier-border);
+    border-radius: 4px;
+    background: var(--background-secondary);
+    font-family: var(--font-monospace);
+    font-size: 0.85em;
+}
+
+.reboarder-hotkey-label {
+    color: var(--text-normal);
+}
