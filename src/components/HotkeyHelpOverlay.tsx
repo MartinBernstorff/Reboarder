@@ -1,4 +1,5 @@
 import React from 'react';
+import { useHotkey } from '@tanstack/react-hotkeys';
 import { getHotkeyDisplayEntries } from './hotkeys';
 
 interface HotkeyHelpOverlayProps {
@@ -6,6 +7,7 @@ interface HotkeyHelpOverlayProps {
 }
 
 export const HotkeyHelpOverlay: React.FC<HotkeyHelpOverlayProps> = ({ onClose }) => {
+	useHotkey('Escape', onClose);
 	const entries = getHotkeyDisplayEntries();
 
 	return (
