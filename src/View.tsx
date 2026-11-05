@@ -43,6 +43,7 @@ export const ReboarderView: React.FC<{
 			<div className="reboarder-container">
 				<div className="reboarder-boards">
 					<Board
+						key={folder.path}
 						folder={folder}
 						plugin={plugin}
 						onOpenNote={handleOpenNote}

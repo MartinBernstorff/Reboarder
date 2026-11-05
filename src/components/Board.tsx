@@ -15,6 +15,16 @@ import { Workspace } from 'src/Workspace';
 import { useListNavigation } from './useGridNavigation';
 import { useScrollIntoView } from './useScrollIntoView';
 import { useDoublePress } from './useDoublePress';
+import { compareCards, DEFAULT_SORT, frontmatterKeys, type SortSpec } from 'src/model/sort';
+import { SNOOZE_EXPIRE_KEY } from 'src/snooze/snooze';
+
+/** Select value for the built-in "Modified" option; cannot collide with a frontmatter key. */
+const MTIME_OPTION = '\u0000mtime';
+
+function sortDirectionTitle(spec: SortSpec): string {
+	if (spec.kind === 'mtime') return spec.direction === 'desc' ? 'Newest first' : 'Oldest first';
+	return spec.direction === 'asc' ? 'Ascending' : 'Descending';
+}
 
 interface BoardProps {
 	folder: TFolder;
@@ -29,7 +39,12 @@ export const Board: React.FC<BoardProps> = ({
 }) => {
 	const wokenRef = useRef<string | null>(null);
 	const boardRef = useRef<HTMLDivElement>(null);
-	const [selectedIndex, setSelectedIndex] = useState<number>(0);
+	// Selection is tracked by path so it follows a card when the sort order changes.
+	// `index` is the fallback position used when the selected card disappears.
+	const [selection, setSelection] = useState<{ path: FilePath | null; index: number }>({ path: null, index: 0 });
+	const [sortSpec, setSortSpecState] = useState<SortSpec>(
+		() => plugin.settings.boardSort[folder.path] ?? DEFAULT_SORT
+	);
 	const [snoozeFile, setSnoozeFile] = useState<FileRecord | null>(null);
 	const [boardState, setBoardState] = useState<'navigating' | 'modal'>('navigating');
 	const [showHelp, setShowHelp] = useState(false);
@@ -47,14 +62,43 @@ export const Board: React.FC<BoardProps> = ({
 	const boardFiles = files
 		.filter(it => it.path.contains(folder.path + "/"))
 		.filter(it => !isSnoozed(it))
-		.sort((a, b) => b.mtime - a.mtime);
+		.sort(compareCards(sortSpec));
 
-	// Select first card when cards become available; clamp when list shrinks
-	useEffect(() => {
-		if (selectedIndex >= boardFiles.length) {
-			setSelectedIndex(boardFiles.length - 1);
-		}
-	}, [boardFiles.length]);
+	const foundIndex = boardFiles.findIndex(it => it.path === selection.path);
+	const selectedIndex = foundIndex !== -1
+		? foundIndex
+		: Math.max(0, Math.min(selection.index, boardFiles.length - 1));
+
+	const setSelectedIndex = useCallback((index: number) => {
+		setSelection({ path: boardFiles[index]?.path ?? null, index });
+	}, [boardFiles]);
+
+	const sortKeys = frontmatterKeys(boardFiles, [SNOOZE_EXPIRE_KEY]);
+	if (sortSpec.kind === 'frontmatter' && !sortKeys.includes(sortSpec.key)) {
+		sortKeys.push(sortSpec.key);
+	}
+
+	const updateSort = useCallback((spec: SortSpec) => {
+		setSortSpecState(spec);
+		plugin.settings.boardSort[folder.path] = spec;
+		void plugin.saveSettings();
+	}, [plugin, folder.path]);
+
+	const selectSortKey = useCallback((value: string) => {
+		updateSort(value === MTIME_OPTION
+			? DEFAULT_SORT
+			: { kind: 'frontmatter', key: value, direction: 'asc' });
+	}, [updateSort]);
+
+	const cycleSortKey = useCallback(() => {
+		const options = [MTIME_OPTION, ...sortKeys];
+		const current = sortSpec.kind === 'mtime' ? MTIME_OPTION : sortSpec.key;
+		selectSortKey(options[(options.indexOf(current) + 1) % options.length]);
+	}, [sortKeys, sortSpec, selectSortKey]);
+
+	const flipSortDirection = useCallback(() => {
+		updateSort({ ...sortSpec, direction: sortSpec.direction === 'asc' ? 'desc' : 'asc' });
+	}, [sortSpec, updateSort]);
 
 	// Focus board when a card becomes selected
 	useEffect(() => {
@@ -98,12 +142,12 @@ export const Board: React.FC<BoardProps> = ({
 	const moveDown = useCallback(() => {
 		const newIndex = navigate('down', selectedIndex);
 		if (newIndex !== null) setSelectedIndex(newIndex);
-	}, [navigate, selectedIndex]);
+	}, [navigate, selectedIndex, setSelectedIndex]);
 
 	const moveUp = useCallback(() => {
 		const newIndex = navigate('up', selectedIndex);
 		if (newIndex !== null) setSelectedIndex(newIndex);
-	}, [navigate, selectedIndex]);
+	}, [navigate, selectedIndex, setSelectedIndex]);
 
 	const openSelected = useCallback(() => {
 		const selected = boardFiles[selectedIndex];
@@ -135,10 +179,10 @@ export const Board: React.FC<BoardProps> = ({
 	useHotkey(HOTKEYS.moveUp.keys[0], moveUp, hotkeyOpts);
 	useHotkey(HOTKEYS.moveUp.keys[1], moveUp, hotkeyOpts);
 	useHotkey(HOTKEYS.nextCard.keys[0], () => {
-		setSelectedIndex(i => ((i ?? 0) + 1) % boardFiles.length);
+		setSelectedIndex((selectedIndex + 1) % boardFiles.length);
 	}, hotkeyOpts);
 	useHotkey(HOTKEYS.prevCard.keys[0], () => {
-		setSelectedIndex(i => ((i ?? 0) - 1 + boardFiles.length) % boardFiles.length);
+		setSelectedIndex((selectedIndex - 1 + boardFiles.length) % boardFiles.length);
 	}, hotkeyOpts);
 	useHotkey(HOTKEYS.openNote.keys[0], openSelected, hotkeyOpts);
 	useHotkey(HOTKEYS.openNote.keys[1], openSelected, hotkeyOpts);
@@ -146,6 +190,8 @@ export const Board: React.FC<BoardProps> = ({
 	useHotkey(HOTKEYS.unpin.keys[0], unpinSelected, hotkeyOpts);
 	useHotkey(HOTKEYS.delete.keys[0], () => onDeleteDoublePress(), hotkeyOpts);
 	useHotkey(HOTKEYS.newNote.keys[0], () => handleNewNote(), hotkeyOpts);
+	useHotkey(HOTKEYS.cycleSort.keys[0], cycleSortKey, hotkeyOpts);
+	useHotkey(HOTKEYS.flipSort.keys[0], flipSortDirection, hotkeyOpts);
 
 	// '?' is not a valid TanStack Hotkey key, so we match it via onKeyDown
 	// using the same HOTKEYS registry value as source of truth.
@@ -164,7 +210,25 @@ export const Board: React.FC<BoardProps> = ({
 			tabIndex={0}
 			onKeyDown={handleKeyDown}
 		>
-			<div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '8px', marginBottom: '8px' }}>
+			<div className="reboarder-toolbar">
+				<label className="reboarder-sort-label">
+					Sort by
+					<select
+						className="dropdown"
+						value={sortSpec.kind === 'mtime' ? MTIME_OPTION : sortSpec.key}
+						onChange={(e) => { selectSortKey(e.target.value); boardRef.current?.focus(); }}
+					>
+						<option value={MTIME_OPTION}>Modified</option>
+						{sortKeys.map(key => <option key={key} value={key}>{key}</option>)}
+					</select>
+				</label>
+				<button
+					className="reboarder-sort-direction"
+					onClick={() => { flipSortDirection(); boardRef.current?.focus(); }}
+					title={sortDirectionTitle(sortSpec)}
+				>
+					{sortSpec.direction === 'asc' ? '\u2191' : '\u2193'}
+				</button>
 				<button
 					className="reboarder-help-btn"
 					onClick={() => setShowHelp(true)}

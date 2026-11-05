@@ -15,6 +15,8 @@ export const HOTKEYS = {
 	unpin:     { keys: ['U'],                     label: 'Unpin note' },
 	delete:    { keys: ['D'],                     label: 'Delete note (press twice)' },
 	newNote:   { keys: ['N'],                     label: 'New note' },
+	cycleSort: { keys: ['O'],                     label: 'Cycle sort key' },
+	flipSort:  { keys: ['Shift+O'],               label: 'Flip sort direction' },
 	help:      { keys: ['?'],                     label: 'Show shortcuts' },
 } as const satisfies Record<string, HotkeyDef>;
 
@@ -22,6 +24,7 @@ const KEY_DISPLAY: Record<string, string> = {
 	ArrowDown: '\u2193',
 	ArrowUp: '\u2191',
 	'Shift+Tab': 'Shift+Tab',
+	'Shift+O': 'Shift+O',
 };
 
 function formatKey(key: string): string {

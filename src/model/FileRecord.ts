@@ -10,6 +10,7 @@ export const FileRecordSchema = z.object({
 	name: FileNameSchema,
 	mtime: EpochMsSchema,
 	snoozeInfo: SnoozeInfoSchema,
+	frontmatter: z.record(z.string(), z.unknown()),
 });
 
 export type FileRecord = z.infer<typeof FileRecordSchema>;

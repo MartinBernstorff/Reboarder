@@ -24,7 +24,8 @@ export class Notes {
             name: FileNameSchema.parse(fileName),
             mtime: EpochMsSchema.parse(Date.now()),
             path: FilePathSchema.parse(path),
-            snoozeInfo: { expireTime: undefined }
+            snoozeInfo: { expireTime: undefined },
+            frontmatter: {},
         };
         fileCollection.insert(record);
         return tfile;
