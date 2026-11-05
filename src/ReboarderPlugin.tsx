@@ -182,7 +182,8 @@ export default class ReboarderPlugin extends Plugin {
 			mtime: file.stat.mtime as EpochMs,
 			snoozeInfo: {
 				expireTime: snoozeEntry?.expire,
-			}
+			},
+			frontmatter: { ...(this.app.metadataCache.getFileCache(file)?.frontmatter ?? {}) },
 		};
 	}
 
